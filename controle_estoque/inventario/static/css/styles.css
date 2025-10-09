@@ -1,0 +1,112 @@
+/* Estilo básico para o layout */
+body {
+    overflow-x: hidden;
+}
+
+#sidebar-wrapper {
+    min-height: 100vh;
+    margin-left: -15rem;
+    transition: margin 0.25s ease-out;
+}
+
+#sidebar-wrapper .sidebar-heading {
+    padding: 0.875rem 1.25rem;
+    font-size: 1.2rem;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+#sidebar-wrapper .list-group {
+    width: 15rem;
+}
+
+#page-content-wrapper {
+    min-width: 100vw;
+}
+
+#wrapper.toggled #sidebar-wrapper {
+    margin-left: 0;
+}
+
+@media (min-width: 768px) {
+    #sidebar-wrapper {
+        margin-left: 0;
+    }
+
+    #page-content-wrapper {
+        min-width: 0;
+        width: 100%;
+    }
+
+    #wrapper.toggled #sidebar-wrapper {
+        margin-left: -15rem;
+    }
+}
+
+/* Estilo para os itens do menu */
+.list-group-item-action {
+    transition: all 0.3s;
+}
+
+.list-group-item-action:hover {
+    background-color: #343a40 !important;
+    color: white !important;
+}
+
+/* Melhorias nos alerts */
+.alert {
+    margin-top: 1rem;
+}
+
+form .pwd-group {
+    display: flex;
+    flex-direction: row;
+}
+
+#toggle_btn1, #toggle_btn2, #toggle_btn {
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+    width: 40px;
+    padding-left: 10px;
+    flex-shrink: 0;
+}
+
+/* --- ESTILO CORRETO DOS BOTÕES E TÍTULO --- */
+.dashboard-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: #fff;
+    border: 1px solid #cfe2ff;
+    border-radius: 0.5rem;
+    color: #0d6efd;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+    height: 180px; /* Altura fixa para todos os cards */
+}
+
+.dashboard-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 0.5rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    background-color: #0d6efd;
+    color: #ffffff;
+    border-color: #0d6efd;
+}
+
+.dashboard-card .card-body {
+    padding: 1.5rem;
+}
+
+.dashboard-card h5 {
+    font-weight: bold;
+    margin-top: 1rem;
+}
+
+/* Estilo para deixar o TÍTULO mais fino e elegante */
+.dashboard-title {
+    font-weight: 300 !important;
+}

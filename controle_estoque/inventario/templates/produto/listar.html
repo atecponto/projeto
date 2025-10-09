@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5>Lista de Produtos</h5>
+        <div>
+            {% if user.is_staff or user.is_superuser %}
+            <a href="{% url 'criar_produto' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Novo Produto
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3 mb-4">
+            <div class="col-md-6">
+                <input type="text" name="busca" class="form-control" placeholder="Buscar por nome..." value="{{ request.GET.busca }}">
+            </div>
+            <div class="col-md-4">
+                <select name="categoria" class="form-select">
+                    <option value="">Todas as categorias</option>
+                    {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if request.GET.categoria == categoria.id|stringformat:"s" %}selected{% endif %}>
+                            {{ categoria.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-outline-primary w-100" type="submit">Filtrar</button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Categoria</th>
+                        <th>Estoque Atual</th>
+                        <th>Criado em</th>
+                        {% if user.is_staff or user.is_superuser %}
+                        <th>Ações</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for produto in page_obj %}
+                    <tr>
+                        <td>{{ produto.nome }}</td>
+                        <td>{{ produto.categoria.nome|default:"Sem categoria" }}</td>
+                        <td>{{ produto.estoque_total }}</td>
+                        <td>{{ produto.data_criacao|date:"d/m/Y" }}</td>
+                        {% if user.is_staff or user.is_superuser %}
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'editar_produto' produto.pk %}" class="btn btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'excluir_produto' produto.pk %}" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center">Nenhum produto encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% include 'partials/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

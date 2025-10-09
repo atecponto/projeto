@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5>Histórico de Transações</h5>
+        {% if user.is_staff or user.is_superuser %}
+        <a href="{% url 'criar_transacao' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nova Transação
+        </a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3 mb-4">
+            <div class="col-md-5">
+                <select name="produto" class="form-select">
+                    <option value="">Todos os produtos</option>
+                    {% for produto in produtos %}
+                    <option value="{{ produto.id }}" {% if request.GET.produto == produto.id|stringformat:"s" %}selected{% endif %}>
+                        {{ produto.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <select name="tipo" class="form-select">
+                    <option value="">Todos os tipos</option>
+                    {% for tipo in tipos_transacao %}
+                    <option value="{{ tipo.id }}" {% if request.GET.tipo == tipo.id|stringformat:"s" %}selected{% endif %}>
+                        {{ tipo.nome }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">Filtrar</button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Data/Hora</th>
+                        <th>Tipo</th>
+                        <th>Produto</th>
+                        <th>Quantidade</th>
+                        <th>Usuário</th>
+                        <th>Ações</th> </tr>
+                </thead>
+                <tbody>
+                    {% for transacao in page_obj %}
+                    <tr>
+                        <td>{{ transacao.data|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            {% if transacao.tipo_transacao.entrada %}
+                            <span class="badge bg-success">{{ transacao.tipo_transacao.nome }}</span>
+                            {% else %}
+                            <span class="badge bg-danger">{{ transacao.tipo_transacao.nome }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ transacao.produto.nome }}</td>
+                        <td>{{ transacao.quantidade }}</td>
+                        <td>{{ transacao.usuario.username }}</td>
+                        <td>
+                            <form action="{% url 'arquivar_transacao' transacao.pk %}" method="post" onsubmit="return confirm('Tem certeza que deseja baixar esta transação?');">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger btn-sm" title="Arquivar Transação">
+                                    <i class="fas fa-times"></i> </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">Nenhuma transação encontrada.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% include 'partials/pagination.html' %}
+    </div>
+</div>
+{% endblock %}

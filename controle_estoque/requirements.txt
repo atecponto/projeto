@@ -1,0 +1,10 @@
+asgiref
+Django
+mysqlclient
+PyMySQL
+python-dotenv
+sqlparse
+tzdata
+xhtml2pdf
+matplotlib
+gunicorn
