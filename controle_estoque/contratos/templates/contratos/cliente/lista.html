@@ -13,7 +13,7 @@
     <div class="card-body">
         <form method="get" class="row g-3 mb-4 p-3 border rounded bg-light">
             <div class="col-md-4">
-                <label for="buscaCnpj" class="form-label">Buscar por CNPJ</label>
+                <label for="cnpj" class="form-label">Buscar por CNPJ</label>
                 <input type="text" name="cnpj" id="buscaCnpj" class="form-control" placeholder="Digite para buscar..." value="{{ request.GET.cnpj }}">
             </div>
             <div class="col-md-3">
@@ -117,7 +117,7 @@
                     <dd class="col-sm-9">{{ cliente.tecnico.nome|default:"Não informado" }}</dd>
 
                     <dt class="col-sm-3">Descrição</dt>
-                    <dd class="col-sm-9">{{ cliente.descricao|default:"Não informada" }}</dd>
+                    <dd class="col-sm-9">{{ cliente.descricao|default:"Não informada"|linebreaksbr }}</dd>
 
                     <dt class="col-sm-3">Anexo</dt>
                     <dd class="col-sm-9">
@@ -129,6 +129,28 @@
                             Nenhum arquivo anexado.
                         {% endif %}
                     </dd>
+                </dl>
+
+                <hr>
+                <h6>Detalhes da Cobrança</h6>
+                <dl class="row">
+                    {% if cliente.tipo_cobranca == 'M' %}
+                        <dt class="col-sm-3">Tipo</dt>
+                        <dd class="col-sm-9">Mensal</dd>
+                        <dt class="col-sm-3">Valor Mensal</dt>
+                        <dd class="col-sm-9">R$ {{ cliente.valor_mensal|default:"0,00" }}</dd>
+                        <dt class="col-sm-3">Meses</dt>
+                        <dd class="col-sm-9">{{ cliente.meses_contrato }}</dd>
+                        <dt class="col-sm-3">Valor Total</dt>
+                        <dd class="col-sm-9 fw-bold">R$ {{ cliente.valor_total_calculado|default:"0,00" }}</dd>
+                    {% elif cliente.tipo_cobranca == 'A' %}
+                        <dt class="col-sm-3">Tipo</dt>
+                        <dd class="col-sm-9">Anual</dd>
+                        <dt class="col-sm-3">Valor Anual</dt>
+                        <dd class="col-sm-9 fw-bold">R$ {{ cliente.valor_anual|default:"0,00" }}</dd>
+                    {% else %}
+                        <dt class="col-sm-12">Nenhuma informação de cobrança cadastrada.</dt>
+                    {% endif %}
                 </dl>
             </div>
             <div class="modal-footer">

@@ -10,8 +10,100 @@
     <div class="card-body">
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
-            {{ form.as_p }}
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-3">
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label for="{{ form.empresa.id_for_label }}" class="form-label"><strong>Empresa:</strong></label>
+                {{ form.empresa }}
+                {% if form.empresa.errors %}<div class="text-danger small mt-1">{{ form.empresa.errors }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.cnpj.id_for_label }}" class="form-label"><strong>CNPJ:</strong></label>
+                {{ form.cnpj }}
+                {% if form.cnpj.errors %}<div class="text-danger small mt-1">{{ form.cnpj.errors }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.sistema.id_for_label }}" class="form-label"><strong>Sistema:</strong></label>
+                {{ form.sistema }}
+                {% if form.sistema.errors %}<div class="text-danger small mt-1">{{ form.sistema.errors }}</div>{% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.tecnico.id_for_label }}" class="form-label"><strong>Técnico:</strong></label>
+                {{ form.tecnico }}
+                {% if form.tecnico.errors %}<div class="text-danger small mt-1">{{ form.tecnico.errors }}</div>{% endif %}
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label for="{{ form.validade.id_for_label }}" class="form-label"><strong>Validade do Contrato:</strong></label>
+                    {{ form.validade }}
+                    {% if form.validade.errors %}<div class="text-danger small mt-1">{{ form.validade.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label"><strong>Tipo de Cobrança:</strong></label>
+                    <div class="btn-group btn-group-sm w-100" role="group">
+                        <input type="radio" class="btn-check" name="{{ form.tipo_cobranca.name }}" id="id_tipo_mensal" value="M" autocomplete="off" {% if form.instance.tipo_cobranca == 'M' %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="id_tipo_mensal">Mensal</label>
+
+                        <input type="radio" class="btn-check" name="{{ form.tipo_cobranca.name }}" id="id_tipo_anual" value="A" autocomplete="off" {% if form.instance.tipo_cobranca == 'A' %}checked{% endif %}>
+                        <label class="btn btn-outline-primary" for="id_tipo_anual">Anual</label>
+                    </div>
+                    {% if form.tipo_cobranca.errors %}<div class="text-danger small mt-1">{{ form.tipo_cobranca.errors }}</div>{% endif %}
+
+                    <div id="campos_mensal" style="display: none;" class="mt-2">
+                        <div class="row align-items-center">
+                            <div class="col">
+                                <label for="id_valor_mensal" class="form-label form-label-sm">Valor Mensal</label>
+                                {{ form.valor_mensal }}
+                            </div>
+                            <div class="col-auto text-center pt-3">X</div>
+                            <div class="col-3">
+                                <label for="id_meses_contrato" class="form-label form-label-sm">Meses</label>
+                                {{ form.meses_contrato }}
+                            </div>
+                            <div class="col-auto text-center pt-3">=</div>
+                            <div class="col">
+                                <label for="id_valor_total" class="form-label form-label-sm">Valor Total</label>
+                                <input type="text" id="id_valor_total" class="form-control form-control-sm" readonly>
+                            </div>
+                        </div>
+                        {% if form.valor_mensal.errors %}<div class="text-danger small mt-1">{{ form.valor_mensal.errors }}</div>{% endif %}
+                    </div>
+
+                    <div id="campos_anual" style="display: none;" class="mt-2">
+                        <div class="row">
+                            <div class="col-lg-6 col-md-8">
+                                <label for="id_valor_anual" class="form-label form-label-sm">Valor Anual</label>
+                                {{ form.valor_anual }}
+                                {% if form.valor_anual.errors %}<div class="text-danger small mt-1">{{ form.valor_anual.errors }}</div>{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.descricao.id_for_label }}" class="form-label"><strong>Descrição:</strong></label>
+                {{ form.descricao }}
+            </div>
+
+            <div class="mb-3">
+                <label for="{{ form.pdf_anexo.id_for_label }}" class="form-label"><strong>Anexo PDF:</strong></label>
+                {{ form.pdf_anexo }}
+                {% if form.instance.pdf_anexo %}
+                    <small class="d-block mt-1">Arquivo atual: <a href="{{ form.instance.pdf_anexo.url }}" target="_blank">{{ form.instance.pdf_anexo.name }}</a></small>
+                {% endif %}
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                 <a href="{% url 'listar_clientes' %}" class="btn btn-secondary">
                     <i class="fas fa-times"></i> Cancelar
                 </a>
@@ -25,25 +117,75 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // ... (Script da máscara de CNPJ permanece o mesmo) ...
         const cnpjInput = document.getElementById('id_cnpj_mascara');
-
         if (cnpjInput) {
             cnpjInput.addEventListener('input', function (e) {
                 let valor = e.target.value.replace(/\D/g, '');
                 valor = valor.substring(0, 14);
-
-                if (valor.length > 12) {
-                    valor = valor.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, '$1.$2.$3/$4-$5');
-                } else if (valor.length > 8) {
-                    valor = valor.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4}).*/, '$1.$2.$3/$4');
-                } else if (valor.length > 5) {
-                    valor = valor.replace(/^(\d{2})(\d{3})(\d{0,3}).*/, '$1.$2.$3');
-                } else if (valor.length > 2) {
-                    valor = valor.replace(/^(\d{2})(\d{0,3}).*/, '$1.$2');
-                }
-
+                if (valor.length > 12) { valor = valor.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, '$1.$2.$3/$4-$5'); } 
+                else if (valor.length > 8) { valor = valor.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4}).*/, '$1.$2.$3/$4'); } 
+                else if (valor.length > 5) { valor = valor.replace(/^(\d{2})(\d{3})(\d{0,3}).*/, '$1.$2.$3'); } 
+                else if (valor.length > 2) { valor = valor.replace(/^(\d{2})(\d{0,3}).*/, '$1.$2'); }
                 e.target.value = valor;
             });
+        }
+        
+        // --- SCRIPT DE COBRANÇA ATUALIZADO ---
+        const radioMensal = document.getElementById('id_tipo_mensal');
+        const radioAnual = document.getElementById('id_tipo_anual');
+        const camposMensal = document.getElementById('campos_mensal');
+        const camposAnual = document.getElementById('campos_anual');
+
+        const valorMensalInput = document.getElementById('id_valor_mensal');
+        const mesesContratoInput = document.getElementById('id_meses_contrato');
+        const valorTotalInput = document.getElementById('id_valor_total');
+
+        function toggleCampos() {
+            if (radioMensal.checked) {
+                camposMensal.style.display = 'block';
+                camposAnual.style.display = 'none';
+            } else if (radioAnual.checked) {
+                camposMensal.style.display = 'none';
+                camposAnual.style.display = 'block';
+            } else {
+                camposMensal.style.display = 'none';
+                camposAnual.style.display = 'none';
+            }
+        }
+
+        // --- FUNÇÃO DE CÁLCULO 100% CORRIGIDA ---
+        function calcularTotal() {
+            let valorString = valorMensalInput.value;
+            if (!valorString) {
+                valorTotalInput.value = (0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                return;
+            }
+            
+            // Lógica para tratar formatos como "1.234,56" (BR) e "1234.56" (EUA)
+            // Se houver vírgula, assume que é o decimal
+            if (valorString.includes(',')) {
+                // Remove os pontos de milhar e substitui a vírgula por ponto
+                valorString = valorString.replace(/\./g, '').replace(',', '.');
+            }
+            // Se não houver vírgula, o número já está num formato que o parseFloat entende (ex: 59.90 ou 59)
+            
+            const valorMensal = parseFloat(valorString) || 0;
+            const meses = parseInt(mesesContratoInput.value) || 0;
+            const total = valorMensal * meses;
+
+            // Formata o resultado final como moeda brasileira (R$)
+            valorTotalInput.value = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        radioMensal.addEventListener('change', toggleCampos);
+        radioAnual.addEventListener('change', toggleCampos);
+        valorMensalInput.addEventListener('input', calcularTotal);
+        mesesContratoInput.addEventListener('input', calcularTotal);
+
+        toggleCampos();
+        if(valorMensalInput.value) { 
+            calcularTotal();
         }
     });
 </script>

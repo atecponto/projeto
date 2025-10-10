@@ -27,22 +27,48 @@ class TecnicoForm(forms.ModelForm):
 
 # ... (outros forms) ...
 
+# ... (imports e outros forms) ...
+
+# ... (imports e outros forms) ...
+
 class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
-        # CAMPOS NOVOS ADICIONADOS À LISTA
-        fields = ['empresa', 'cnpj', 'sistema', 'tecnico', 'validade', 'descricao', 'pdf_anexo']
+        fields = [
+            'empresa', 'cnpj', 'sistema', 'tecnico', 'validade', 
+            'descricao', 'pdf_anexo', 'tipo_cobranca', 'valor_mensal',
+            'meses_contrato', 'valor_anual'
+        ]
         widgets = {
             'validade': forms.DateInput(attrs={'type': 'date'}),
-            'descricao': forms.Textarea(attrs={'rows': 3}), # Widget para campo de texto maior
+            'descricao': forms.Textarea(attrs={'rows': 3}),
+            'tipo_cobranca': forms.RadioSelect(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         for field_name, field in self.fields.items():
-            # Não aplicar a classe em campos de data ou arquivo
-            if field_name not in ['validade', 'pdf_anexo']:
+            if field_name not in ['validade', 'pdf_anexo', 'tipo_cobranca']:
                 field.widget.attrs.update({'class': 'form-control'})
         
         self.fields['tecnico'].empty_label = "Nenhum técnico selecionado"
         self.fields['cnpj'].widget.attrs['id'] = 'id_cnpj_mascara'
+        
+        # --- CAMPOS ATUALIZADOS COM A CLASSE 'form-control-sm' ---
+        self.fields['valor_mensal'].widget.attrs.update({'id': 'id_valor_mensal', 'placeholder': 'R$ 0,00', 'class': 'form-control form-control-sm'})
+        self.fields['meses_contrato'].widget.attrs.update({'id': 'id_meses_contrato', 'class': 'form-control form-control-sm'})
+        self.fields['valor_anual'].widget.attrs.update({'id': 'id_valor_anual', 'placeholder': 'R$ 0,00', 'class': 'form-control form-control-sm'})
+
+    def clean(self):
+        cleaned_data = super().clean()
+        tipo_cobranca = cleaned_data.get("tipo_cobranca")
+        valor_mensal = cleaned_data.get("valor_mensal")
+        valor_anual = cleaned_data.get("valor_anual")
+
+        if tipo_cobranca == 'M' and not valor_mensal:
+            self.add_error('valor_mensal', 'Este campo é obrigatório para cobrança mensal.')
+        
+        if tipo_cobranca == 'A' and not valor_anual:
+            self.add_error('valor_anual', 'Este campo é obrigatório para cobrança anual.')
+            
+        return cleaned_data
