@@ -51,22 +51,25 @@
                     <tr>
                         <th>Empresa</th>
                         <th>CNPJ</th>
+                        <th>Descrição</th>
                         <th>Sistema</th>
-                        <th>Técnico</th>
                         <th>Validade</th>
                         <th class="text-end">Ações</th>
                     </tr>
                 </thead>
                 <tbody id="tabelaClientes">
                     {% for cliente in page_obj %}
-                    <tr>
+                    <tr class="{% if cliente.validade < today %}table-danger{% endif %}">
                         <td>{{ cliente.empresa }}</td>
                         <td class="cnpj-col">{{ cliente.cnpj }}</td>
+                        <td>{{ cliente.descricao|truncatechars:20|default:"-" }}</td>
                         <td>{{ cliente.sistema.nome }}</td>
-                        <td>{{ cliente.tecnico.nome|default:"-" }}</td>
                         <td>{{ cliente.validade|date:"d/m/Y" }}</td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#modalCliente{{ cliente.pk }}">
+                                    <i class="fas fa-eye"></i>
+                                </button>
                                 <a href="{% url 'editar_cliente' cliente.pk %}" class="btn btn-warning">
                                     <i class="fas fa-edit"></i>
                                 </a>
@@ -88,31 +91,79 @@
     </div>
 </div>
 
+{% for cliente in page_obj %}
+<div class="modal fade" id="modalCliente{{ cliente.pk }}" tabindex="-1" aria-labelledby="modalClienteLabel{{ cliente.pk }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalClienteLabel{{ cliente.pk }}">Ficha Cadastral: {{ cliente.empresa }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row">
+                    <dt class="col-sm-3">Empresa</dt>
+                    <dd class="col-sm-9">{{ cliente.empresa }}</dd>
+
+                    <dt class="col-sm-3">CNPJ</dt>
+                    <dd class="col-sm-9">{{ cliente.cnpj }}</dd>
+                    
+                    <dt class="col-sm-3">Validade do Contrato</dt>
+                    <dd class="col-sm-9">{{ cliente.validade|date:"d/m/Y" }} {% if cliente.validade < today %}<span class="badge bg-danger">Vencido</span>{% endif %}</dd>
+                    
+                    <dt class="col-sm-3">Sistema</dt>
+                    <dd class="col-sm-9">{{ cliente.sistema.nome }}</dd>
+
+                    <dt class="col-sm-3">Técnico Responsável</dt>
+                    <dd class="col-sm-9">{{ cliente.tecnico.nome|default:"Não informado" }}</dd>
+
+                    <dt class="col-sm-3">Descrição</dt>
+                    <dd class="col-sm-9">{{ cliente.descricao|default:"Não informada" }}</dd>
+
+                    <dt class="col-sm-3">Anexo</dt>
+                    <dd class="col-sm-9">
+                        {% if cliente.pdf_anexo %}
+                            <a href="{{ cliente.pdf_anexo.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-file-pdf"></i> Ver PDF Anexado
+                            </a>
+                        {% else %}
+                            Nenhum arquivo anexado.
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const buscaInput = document.getElementById('buscaCnpj');
         const tabelaBody = document.getElementById('tabelaClientes');
         const linhasTabela = tabelaBody.getElementsByTagName('tr');
 
-        buscaInput.addEventListener('keyup', function() {
-            const termoBusca = this.value.replace(/[\.\-\/]/g, '').toUpperCase();
-
-            for (let i = 0; i < linhasTabela.length; i++) {
-                const linha = linhasTabela[i];
-                const celulaCnpj = linha.querySelector('.cnpj-col');
-                
-                if (celulaCnpj) {
-                    const textoCelula = celulaCnpj.textContent || celulaCnpj.innerText;
-                    const textoCelulaLimpo = textoCelula.replace(/[\.\-\/]/g, '').toUpperCase();
-
-                    if (textoCelulaLimpo.includes(termoBusca)) {
-                        linha.style.display = '';
-                    } else {
-                        linha.style.display = 'none';
+        if (buscaInput) {
+            buscaInput.addEventListener('keyup', function() {
+                const termoBusca = this.value.replace(/[\.\-\/]/g, '').toUpperCase();
+                for (let i = 0; i < linhasTabela.length; i++) {
+                    const linha = linhasTabela[i];
+                    const celulaCnpj = linha.querySelector('.cnpj-col');
+                    if (celulaCnpj) {
+                        const textoCelula = celulaCnpj.textContent || celulaCnpj.innerText;
+                        const textoCelulaLimpo = textoCelula.replace(/[\.\-\/]/g, '').toUpperCase();
+                        if (textoCelulaLimpo.includes(termoBusca)) {
+                            linha.style.display = '';
+                        } else {
+                            linha.style.display = 'none';
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
     });
 </script>
+
 {% endblock %}

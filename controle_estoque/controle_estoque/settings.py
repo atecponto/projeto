@@ -161,3 +161,9 @@ PASSWORD_RESET_TIMEOUT = 172800  # 48 horas em segundos
 # SECURE_SSL_REDIRECT = True
 
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# ... (todo o resto do seu settings.py acima) ...
+
+# CONFIGURAÇÃO DE UPLOAD DE ARQUIVOS (MÍDIA)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'

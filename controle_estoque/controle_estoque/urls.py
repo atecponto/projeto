@@ -1,7 +1,10 @@
 from django.contrib import admin
-from django.urls import path, include  # Adicione o include
+from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from inventario import views
+# --- IMPORTS ADICIONADOS AQUI ---
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -42,3 +45,7 @@ urlpatterns = [
     path('transacao/arquivar/<int:pk>/', views.arquivar_transacao, name='arquivar_transacao'),
     path('relatorios/', views.transacao_pdf_view, name='relatorio_transacoes'),
 ]
+
+# --- BLOCO DE CÓDIGO ADICIONADO PARA SERVIR ARQUIVOS DE MÍDIA EM DESENVOLVIMENTO ---
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

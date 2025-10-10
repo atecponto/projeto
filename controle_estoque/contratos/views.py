@@ -4,8 +4,9 @@ from django.contrib.auth.decorators import login_required
 from .models import Sistema, Tecnico, Cliente
 from .forms import SistemaForm, TecnicoForm, ClienteForm
 from django.core.paginator import Paginator
+from datetime import date # <--- ADICIONE ESTA LINHA DE IMPORTAÇÃO
 
-# --- Views de Sistema (sem alterações) ---
+# --- Views de Sistema ---
 @login_required
 def listar_sistemas(request):
     busca = request.GET.get('busca')
@@ -53,7 +54,7 @@ def excluir_sistema(request, pk):
         return redirect('listar_sistemas')
     return render(request, 'contratos/sistema/confirmar_exclusao_sistema.html', {'sistema': sistema})
 
-# --- Views de Técnico (sem alterações) ---
+# --- Views de Técnico ---
 @login_required
 def listar_tecnicos(request):
     busca = request.GET.get('busca')
@@ -101,8 +102,7 @@ def excluir_tecnico(request, pk):
         return redirect('listar_tecnicos')
     return render(request, 'contratos/tecnicos/excluir.html', {'tecnico': tecnico})
 
-# --- ADICIONE AS NOVAS VIEWS DE CLIENTE ABAIXO ---
-
+# --- Views de Cliente ---
 @login_required
 def listar_clientes(request):
     clientes_list = Cliente.objects.select_related('sistema', 'tecnico').all()
@@ -127,13 +127,14 @@ def listar_clientes(request):
         'page_obj': page_obj,
         'sistemas': Sistema.objects.all(),
         'tecnicos': Tecnico.objects.all(),
+        'today': date.today(),
     }
     return render(request, 'contratos/cliente/lista.html', context)
 
 @login_required
 def criar_cliente(request):
     if request.method == 'POST':
-        form = ClienteForm(request.POST)
+        form = ClienteForm(request.POST, request.FILES)
         if form.is_valid():
             form.save()
             messages.success(request, 'Cliente cadastrado com sucesso!')
@@ -148,7 +149,7 @@ def criar_cliente(request):
 def editar_cliente(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
     if request.method == 'POST':
-        form = ClienteForm(request.POST, instance=cliente)
+        form = ClienteForm(request.POST, request.FILES, instance=cliente)
         if form.is_valid():
             form.save()
             messages.success(request, 'Cliente atualizado com sucesso!')
@@ -163,6 +164,8 @@ def editar_cliente(request, pk):
 def excluir_cliente(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
     if request.method == 'POST':
+        if cliente.pdf_anexo:
+            cliente.pdf_anexo.delete()
         cliente.delete()
         messages.success(request, f'Cliente "{cliente.empresa}" excluído com sucesso!')
         return redirect('listar_clientes')

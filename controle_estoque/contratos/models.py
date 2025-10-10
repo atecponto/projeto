@@ -19,6 +19,9 @@ class Cliente(models.Model):
     sistema = models.ForeignKey(Sistema, on_delete=models.PROTECT, verbose_name="Sistema")
     tecnico = models.ForeignKey(Tecnico, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Técnico")
     validade = models.DateField(verbose_name="Validade do Contrato")
+    # NOVOS CAMPOS ADICIONADOS
+    descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
+    pdf_anexo = models.FileField(upload_to='contratos_pdfs/', blank=True, null=True, verbose_name="Anexo PDF")
 
     class Meta:
         ordering = ['empresa']
