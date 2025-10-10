@@ -1,23 +1,20 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import Sistema, Tecnico
-from .forms import SistemaForm, TecnicoForm
+from .models import Sistema, Tecnico, Cliente
+from .forms import SistemaForm, TecnicoForm, ClienteForm
 from django.core.paginator import Paginator
 
-# --- Views de Sistema (Adaptadas para seus nomes de arquivo) ---
+# --- Views de Sistema (sem alterações) ---
 @login_required
 def listar_sistemas(request):
     busca = request.GET.get('busca')
     sistemas_list = Sistema.objects.all().order_by('nome')
     if busca:
         sistemas_list = sistemas_list.filter(nome__icontains=busca)
-    
     paginator = Paginator(sistemas_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
-    # Apontando para 'listar_sistemas.html'
     return render(request, 'contratos/sistema/listar_sistemas.html', {'page_obj': page_obj})
 
 @login_required
@@ -30,12 +27,7 @@ def criar_sistema(request):
             return redirect('listar_sistemas')
     else:
         form = SistemaForm()
-    
-    context = {
-        'form': form,
-        'titulo': 'Cadastrar Novo Sistema'
-    }
-    # Apontando para 'form_sistema.html'
+    context = { 'form': form, 'titulo': 'Cadastrar Novo Sistema' }
     return render(request, 'contratos/sistema/form_sistema.html', context)
 
 @login_required
@@ -49,40 +41,28 @@ def editar_sistema(request, pk):
             return redirect('listar_sistemas')
     else:
         form = SistemaForm(instance=sistema)
-    
-    context = {
-        'form': form,
-        'titulo': f'Editando Sistema: {sistema.nome}'
-    }
-    # Apontando para 'form_sistema.html'
+    context = { 'form': form, 'titulo': f'Editando Sistema: {sistema.nome}' }
     return render(request, 'contratos/sistema/form_sistema.html', context)
 
 @login_required
 def excluir_sistema(request, pk):
     sistema = get_object_or_404(Sistema, pk=pk)
     if request.method == 'POST':
-        nome_sistema = sistema.nome
         sistema.delete()
-        messages.success(request, f'Sistema "{nome_sistema}" excluído com sucesso!')
+        messages.success(request, f'Sistema "{sistema.nome}" excluído com sucesso!')
         return redirect('listar_sistemas')
-    
-    # Apontando para 'confirmar_exclusao_sistema.html'
     return render(request, 'contratos/sistema/confirmar_exclusao_sistema.html', {'sistema': sistema})
 
-
-# --- Views de Técnico (Adaptadas para seus nomes de arquivo) ---
+# --- Views de Técnico (sem alterações) ---
 @login_required
 def listar_tecnicos(request):
     busca = request.GET.get('busca')
     tecnicos_list = Tecnico.objects.all().order_by('nome')
     if busca:
         tecnicos_list = tecnicos_list.filter(nome__icontains=busca)
-    
     paginator = Paginator(tecnicos_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    
-    # Apontando para 'lista.html'
     return render(request, 'contratos/tecnicos/lista.html', {'page_obj': page_obj})
 
 @login_required
@@ -95,12 +75,7 @@ def criar_tecnico(request):
             return redirect('listar_tecnicos')
     else:
         form = TecnicoForm()
-    
-    context = {
-        'form': form,
-        'titulo': 'Cadastrar Novo Técnico'
-    }
-    # Apontando para 'form.html'
+    context = { 'form': form, 'titulo': 'Cadastrar Novo Técnico' }
     return render(request, 'contratos/tecnicos/form.html', context)
 
 @login_required
@@ -114,22 +89,82 @@ def editar_tecnico(request, pk):
             return redirect('listar_tecnicos')
     else:
         form = TecnicoForm(instance=tecnico)
-    
-    context = {
-        'form': form,
-        'titulo': f'Editando Técnico: {tecnico.nome}'
-    }
-    # Apontando para 'form.html'
+    context = { 'form': form, 'titulo': f'Editando Técnico: {tecnico.nome}' }
     return render(request, 'contratos/tecnicos/form.html', context)
 
 @login_required
 def excluir_tecnico(request, pk):
     tecnico = get_object_or_404(Tecnico, pk=pk)
     if request.method == 'POST':
-        nome_tecnico = tecnico.nome
         tecnico.delete()
-        messages.success(request, f'Técnico "{nome_tecnico}" excluído com sucesso!')
+        messages.success(request, f'Técnico "{tecnico.nome}" excluído com sucesso!')
         return redirect('listar_tecnicos')
-    
-    # Apontando para 'excluir.html'
     return render(request, 'contratos/tecnicos/excluir.html', {'tecnico': tecnico})
+
+# --- ADICIONE AS NOVAS VIEWS DE CLIENTE ABAIXO ---
+
+@login_required
+def listar_clientes(request):
+    clientes_list = Cliente.objects.select_related('sistema', 'tecnico').all()
+
+    # Filtros
+    filtro_cnpj = request.GET.get('cnpj')
+    filtro_sistema = request.GET.get('sistema')
+    filtro_tecnico = request.GET.get('tecnico')
+
+    if filtro_cnpj:
+        clientes_list = clientes_list.filter(cnpj__icontains=filtro_cnpj)
+    if filtro_sistema:
+        clientes_list = clientes_list.filter(sistema__id=filtro_sistema)
+    if filtro_tecnico:
+        clientes_list = clientes_list.filter(tecnico__id=filtro_tecnico)
+        
+    paginator = Paginator(clientes_list, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'sistemas': Sistema.objects.all(),
+        'tecnicos': Tecnico.objects.all(),
+    }
+    return render(request, 'contratos/cliente/lista.html', context)
+
+@login_required
+def criar_cliente(request):
+    if request.method == 'POST':
+        form = ClienteForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Cliente cadastrado com sucesso!')
+            return redirect('listar_clientes')
+    else:
+        form = ClienteForm()
+
+    context = {'form': form, 'titulo': 'Cadastrar Novo Cliente'}
+    return render(request, 'contratos/cliente/form.html', context)
+
+@login_required
+def editar_cliente(request, pk):
+    cliente = get_object_or_404(Cliente, pk=pk)
+    if request.method == 'POST':
+        form = ClienteForm(request.POST, instance=cliente)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Cliente atualizado com sucesso!')
+            return redirect('listar_clientes')
+    else:
+        form = ClienteForm(instance=cliente)
+
+    context = {'form': form, 'titulo': f'Editando Cliente: {cliente.empresa}'}
+    return render(request, 'contratos/cliente/form.html', context)
+
+@login_required
+def excluir_cliente(request, pk):
+    cliente = get_object_or_404(Cliente, pk=pk)
+    if request.method == 'POST':
+        cliente.delete()
+        messages.success(request, f'Cliente "{cliente.empresa}" excluído com sucesso!')
+        return redirect('listar_clientes')
+
+    return render(request, 'contratos/cliente/excluir.html', {'cliente': cliente})

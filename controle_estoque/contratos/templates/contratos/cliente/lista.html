@@ -1,0 +1,118 @@
+{% extends 'contratos/base_contrato.html' %}
+
+{% block title %}Clientes{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="m-0">Lista de Clientes</h5>
+        <a href="{% url 'criar_cliente' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Novo Cliente
+        </a>
+    </div>
+    <div class="card-body">
+        <form method="get" class="row g-3 mb-4 p-3 border rounded bg-light">
+            <div class="col-md-4">
+                <label for="buscaCnpj" class="form-label">Buscar por CNPJ</label>
+                <input type="text" name="cnpj" id="buscaCnpj" class="form-control" placeholder="Digite para buscar..." value="{{ request.GET.cnpj }}">
+            </div>
+            <div class="col-md-3">
+                <label for="sistema" class="form-label">Filtrar por Sistema</label>
+                <select name="sistema" id="sistema" class="form-select">
+                    <option value="">Todos os Sistemas</option>
+                    {% for sistema in sistemas %}
+                        <option value="{{ sistema.id }}" {% if request.GET.sistema == sistema.id|stringformat:"s" %}selected{% endif %}>{{ sistema.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="tecnico" class="form-label">Filtrar por Técnico</label>
+                <select name="tecnico" id="tecnico" class="form-select">
+                    <option value="">Todos os Técnicos</option>
+                    {% for tecnico in tecnicos %}
+                        <option value="{{ tecnico.id }}" {% if request.GET.tecnico == tecnico.id|stringformat:"s" %}selected{% endif %}>{{ tecnico.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+            </div>
+        </form>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success mt-3">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>CNPJ</th>
+                        <th>Sistema</th>
+                        <th>Técnico</th>
+                        <th>Validade</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaClientes">
+                    {% for cliente in page_obj %}
+                    <tr>
+                        <td>{{ cliente.empresa }}</td>
+                        <td class="cnpj-col">{{ cliente.cnpj }}</td>
+                        <td>{{ cliente.sistema.nome }}</td>
+                        <td>{{ cliente.tecnico.nome|default:"-" }}</td>
+                        <td>{{ cliente.validade|date:"d/m/Y" }}</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'editar_cliente' cliente.pk %}" class="btn btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'excluir_cliente' cliente.pk %}" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">Nenhum cliente encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% include 'partials/pagination.html' %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const buscaInput = document.getElementById('buscaCnpj');
+        const tabelaBody = document.getElementById('tabelaClientes');
+        const linhasTabela = tabelaBody.getElementsByTagName('tr');
+
+        buscaInput.addEventListener('keyup', function() {
+            const termoBusca = this.value.replace(/[\.\-\/]/g, '').toUpperCase();
+
+            for (let i = 0; i < linhasTabela.length; i++) {
+                const linha = linhasTabela[i];
+                const celulaCnpj = linha.querySelector('.cnpj-col');
+                
+                if (celulaCnpj) {
+                    const textoCelula = celulaCnpj.textContent || celulaCnpj.innerText;
+                    const textoCelulaLimpo = textoCelula.replace(/[\.\-\/]/g, '').toUpperCase();
+
+                    if (textoCelulaLimpo.includes(termoBusca)) {
+                        linha.style.display = '';
+                    } else {
+                        linha.style.display = 'none';
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
