@@ -5,6 +5,7 @@ from .models import Sistema, Tecnico, Cliente
 from .forms import SistemaForm, TecnicoForm, ClienteForm
 from django.core.paginator import Paginator
 from datetime import date # <--- ADICIONE ESTA LINHA DE IMPORTAÇÃO
+from django.views.decorators.http import require_POST
 
 # --- Views de Sistema ---
 @login_required
@@ -107,10 +108,12 @@ def excluir_tecnico(request, pk):
 def listar_clientes(request):
     clientes_list = Cliente.objects.select_related('sistema', 'tecnico').all()
 
-    # Filtros
+    # Filtros existentes
     filtro_cnpj = request.GET.get('cnpj')
     filtro_sistema = request.GET.get('sistema')
     filtro_tecnico = request.GET.get('tecnico')
+    # NOVO FILTRO
+    mostrar_bloqueados = request.GET.get('mostrar_bloqueados')
 
     if filtro_cnpj:
         clientes_list = clientes_list.filter(cnpj__icontains=filtro_cnpj)
@@ -118,6 +121,10 @@ def listar_clientes(request):
         clientes_list = clientes_list.filter(sistema__id=filtro_sistema)
     if filtro_tecnico:
         clientes_list = clientes_list.filter(tecnico__id=filtro_tecnico)
+    
+    # LÓGICA DO NOVO FILTRO
+    if mostrar_bloqueados == 'on':
+        clientes_list = clientes_list.filter(bloqueado=True)
         
     paginator = Paginator(clientes_list, 10)
     page_number = request.GET.get('page')
@@ -171,3 +178,16 @@ def excluir_cliente(request, pk):
         return redirect('listar_clientes')
 
     return render(request, 'contratos/cliente/excluir.html', {'cliente': cliente})
+
+@require_POST # Garante que esta view só aceite requisições POST
+@login_required
+def toggle_bloqueado_cliente(request, pk):
+    cliente = get_object_or_404(Cliente, pk=pk)
+    # Inverte o status atual (se for True vira False, e vice-versa)
+    cliente.bloqueado = not cliente.bloqueado
+    cliente.save()
+    
+    status = "bloqueado" if cliente.bloqueado else "desbloqueado"
+    messages.success(request, f'Cliente "{cliente.empresa}" foi {status} com sucesso.')
+    
+    return redirect('listar_clientes')

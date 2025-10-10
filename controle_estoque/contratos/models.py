@@ -34,6 +34,9 @@ class Cliente(models.Model):
     meses_contrato = models.IntegerField(default=12, null=True, blank=True)
     valor_anual = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     
+    bloqueado = models.BooleanField(default=False, verbose_name="Bloqueado")
+
+
     class Meta:
         ordering = ['empresa']
 

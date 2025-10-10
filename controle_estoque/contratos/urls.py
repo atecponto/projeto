@@ -19,4 +19,6 @@ urlpatterns = [
     path('clientes/novo/', views.criar_cliente, name='criar_cliente'),
     path('clientes/editar/<int:pk>/', views.editar_cliente, name='editar_cliente'),
     path('clientes/excluir/<int:pk>/', views.excluir_cliente, name='excluir_cliente'),
+
+    path('clientes/toggle-bloqueado/<int:pk>/', views.toggle_bloqueado_cliente, name='toggle_bloqueado_cliente'),
 ]

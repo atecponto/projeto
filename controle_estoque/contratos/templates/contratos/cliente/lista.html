@@ -11,37 +11,48 @@
         </a>
     </div>
     <div class="card-body">
-        <form method="get" class="row g-3 mb-4 p-3 border rounded bg-light">
-            <div class="col-md-4">
+        <form method="get" class="row g-3 mb-4 p-3 border rounded bg-light align-items-end">
+            <div class="col-md-3">
                 <label for="cnpj" class="form-label">Buscar por CNPJ</label>
                 <input type="text" name="cnpj" id="buscaCnpj" class="form-control" placeholder="Digite para buscar..." value="{{ request.GET.cnpj }}">
             </div>
             <div class="col-md-3">
                 <label for="sistema" class="form-label">Filtrar por Sistema</label>
                 <select name="sistema" id="sistema" class="form-select">
-                    <option value="">Todos os Sistemas</option>
-                    {% for sistema in sistemas %}
-                        <option value="{{ sistema.id }}" {% if request.GET.sistema == sistema.id|stringformat:"s" %}selected{% endif %}>{{ sistema.nome }}</option>
+                    <option value="">Todos</option>
+                    {% for s in sistemas %}
+                        <option value="{{ s.id }}" {% if request.GET.sistema == s.id|stringformat:"s" %}selected{% endif %}>{{ s.nome }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="col-md-3">
                 <label for="tecnico" class="form-label">Filtrar por Técnico</label>
                 <select name="tecnico" id="tecnico" class="form-select">
-                    <option value="">Todos os Técnicos</option>
-                    {% for tecnico in tecnicos %}
-                        <option value="{{ tecnico.id }}" {% if request.GET.tecnico == tecnico.id|stringformat:"s" %}selected{% endif %}>{{ tecnico.nome }}</option>
+                    <option value="">Todos</option>
+                    {% for t in tecnicos %}
+                        <option value="{{ t.id }}" {% if request.GET.tecnico == t.id|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
+            <div class="col-md-1">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="mostrar_bloqueados" id="mostrar_bloqueados" {% if request.GET.mostrar_bloqueados %}checked{% endif %}>
+                    <label class="form-check-label" for="mostrar_bloqueados" title="Mostrar apenas bloqueados">
+                        <i class="fas fa-lock" style="color: black;"></i>
+                    </label>
+                </div>
+            </div>
+            <div class="col-md-2">
                 <button type="submit" class="btn btn-primary w-100">Filtrar</button>
             </div>
         </form>
         
         {% if messages %}
             {% for message in messages %}
-                <div class="alert alert-success mt-3">{{ message }}</div>
+                <div class="alert alert-{{ message.tags|default:'success' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             {% endfor %}
         {% endif %}
 
@@ -51,9 +62,9 @@
                     <tr>
                         <th>Empresa</th>
                         <th>CNPJ</th>
-                        <th>Descrição</th>
                         <th>Sistema</th>
                         <th>Validade</th>
+                        <th class="text-center">Bloqueado</th>
                         <th class="text-end">Ações</th>
                     </tr>
                 </thead>
@@ -62,9 +73,20 @@
                     <tr class="{% if cliente.validade < today %}table-danger{% endif %}">
                         <td>{{ cliente.empresa }}</td>
                         <td class="cnpj-col">{{ cliente.cnpj }}</td>
-                        <td>{{ cliente.descricao|truncatechars:20|default:"-" }}</td>
                         <td>{{ cliente.sistema.nome }}</td>
                         <td>{{ cliente.validade|date:"d/m/Y" }}</td>
+                        <td class="text-center">
+                            <form method="post" action="{% url 'toggle_bloqueado_cliente' cliente.pk %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-link text-decoration-none p-0 m-0">
+                                    {% if cliente.bloqueado %}
+                                        <i class="fas fa-lock text-danger" title="Cliente Bloqueado. Clique para desbloquear."></i>
+                                    {% else %}
+                                        <i class="fas fa-lock-open text-success" title="Cliente Ativo. Clique para bloquear."></i>
+                                    {% endif %}
+                                </button>
+                            </form>
+                        </td>
                         <td class="text-end">
                             <div class="btn-group btn-group-sm">
                                 <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#modalCliente{{ cliente.pk }}">
@@ -101,6 +123,15 @@
             </div>
             <div class="modal-body">
                 <dl class="row">
+                    <dt class="col-sm-3">Status</dt>
+                    <dd class="col-sm-9">
+                        {% if cliente.bloqueado %}
+                            <span class="badge bg-danger">Bloqueado</span>
+                        {% else %}
+                            <span class="badge bg-success">Ativo</span>
+                        {% endif %}
+                    </dd>
+
                     <dt class="col-sm-3">Empresa</dt>
                     <dd class="col-sm-9">{{ cliente.empresa }}</dd>
 
@@ -130,7 +161,6 @@
                         {% endif %}
                     </dd>
                 </dl>
-
                 <hr>
                 <h6>Detalhes da Cobrança</h6>
                 <dl class="row">
@@ -161,6 +191,7 @@
 </div>
 {% endfor %}
 
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const buscaInput = document.getElementById('buscaCnpj');
@@ -187,5 +218,4 @@
         }
     });
 </script>
-
 {% endblock %}
