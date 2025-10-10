@@ -1,0 +1,89 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Atec Estoque{% endblock %}</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}?v=1.0">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="d-flex" id="wrapper">
+        <div class="bg-dark border-right" id="sidebar-wrapper">
+            <div class="sidebar-heading text-white py-4">
+                <h2 class="fs-4 text-center text-white">Contratos</h2>
+            </div>
+            <div class="list-group list-group-flush">
+                {% if user.is_authenticated %}
+                    <a href="#" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="fas fa-file-signature me-2"></i>Contrato
+                    </a>
+                    
+                    <a href="{% url 'listar_sistemas' %}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="fas fa-laptop-code me-2"></i>Sistema
+                    </a>
+                    
+                    <a href="#" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="fas fa-user me-2"></i>Técnico
+                    </a>
+                    
+                    <a href="#" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="fas fa-chart-bar me-2"></i>Relatório
+                    </a>
+
+                    <a href="{% url 'dashboard' %}" class="list-group-item list-group-item-action bg-dark text-white">
+                        <i class="fas fa-arrow-left me-2"></i>Retornar ao Menu
+                    </a>
+                    
+                {% endif %}
+            </div>
+        </div>
+        <div id="page-content-wrapper">
+            <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom px-4">
+                <button class="btn btn-sm btn-outline-secondary" id="menu-toggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <div class="navbar-collapse">
+                    <ul class="navbar-nav ms-auto mt-2 mt-lg-0 d-flex align-items-center">
+                        {% if user.is_authenticated %}
+                            <li class="nav-item">
+                                <span class="nav-link">Bem-vindo, {{ user.get_short_name|default:user.username }}</span>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{% url 'logout' %}" class="btn btn-outline-danger btn-sm ms-2">
+                                    <i class="fas fa-sign-out-alt me-2"></i>Sair
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'login' %}">Login</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </nav>
+
+            <div class="container-fluid px-4 py-3">
+                {% block content %}{% endblock %}
+            </div>
+        </div>
+        </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Toggle sidebar
+        document.getElementById("menu-toggle").addEventListener("click", function(e) {
+            e.preventDefault();
+            document.getElementById("wrapper").classList.toggle("toggled");
+        });
+    </script>
+</body>
+</html>

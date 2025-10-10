@@ -3,14 +3,16 @@
 
 {% block title %}Painel de Navegação{% endblock %}
 
-{% block navbar_brand %}{% endblock %} {% block content %}
+{% block navbar_brand %}{% endblock %} 
+
+{% block content %}
 <div class="container text-center py-5">
     
     <h1 class="display-5 mb-5 fw-bold dashboard-title">Painel de Navegação</h1>
 
     <div class="row g-4 justify-content-center">
         <div class="col-lg-3 col-md-4">
-            <a href="#" class="dashboard-card text-decoration-none">
+            <a href="{% url 'listar_sistemas' %}" class="dashboard-card text-decoration-none">
                 <div class="card-body">
                     <i class="fas fa-file-signature fa-4x mb-3"></i>
                     <h5 class="card-title">Contrato</h5>
@@ -48,7 +50,7 @@
         <div class="col-lg-3 col-md-4">
             <a href="#" class="dashboard-card text-decoration-none">
                 <div class="card-body">
-                    <i class="fas fa-handshake fa-4x mb-3"></i> {# Ícone alterado aqui #}
+                    <i class="fas fa-handshake fa-4x mb-3"></i>
                     <h5 class="card-title">Revenda</h5>
                 </div>
             </a>
