@@ -110,22 +110,18 @@ def excluir_tecnico(request, pk):
 def listar_clientes(request):
     clientes_list = Cliente.objects.select_related('sistema', 'tecnico').all()
 
-    # Pega todos os parâmetros de filtro da URL
     filtro_cnpj = request.GET.get('cnpj')
     filtro_sistema = request.GET.get('sistema')
     filtro_tecnico = request.GET.get('tecnico')
     mostrar_bloqueados = request.GET.get('mostrar_bloqueados')
     mostrar_inativos = request.GET.get('mostrar_inativos')
-    # NOVO FILTRO ADICIONADO AQUI
     mostrar_vencidos = request.GET.get('mostrar_vencidos')
 
-    # Aplica o filtro de status (Ativo/Inativo)
     if mostrar_inativos == 'on':
         clientes_list = clientes_list.filter(ativo=False)
     else:
         clientes_list = clientes_list.filter(ativo=True)
     
-    # Aplica os outros filtros
     if filtro_cnpj:
         clientes_list = clientes_list.filter(cnpj__icontains=filtro_cnpj)
     if filtro_sistema:
@@ -134,8 +130,6 @@ def listar_clientes(request):
         clientes_list = clientes_list.filter(tecnico__id=filtro_tecnico)
     if mostrar_bloqueados == 'on':
         clientes_list = clientes_list.filter(bloqueado=True)
-
-    # LÓGICA DO NOVO FILTRO DE VENCIDOS
     if mostrar_vencidos == 'on':
         clientes_list = clientes_list.filter(validade__lt=date.today())
         
@@ -143,11 +137,23 @@ def listar_clientes(request):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
+    # --- CÁLCULO DAS ESTATÍSTICAS ADICIONADO AQUI ---
+    total_ativos = Cliente.objects.filter(ativo=True).count()
+    total_inativos = Cliente.objects.filter(ativo=False).count()
+    # Contamos apenas clientes ativos que também estão bloqueados/vencidos
+    total_bloqueados = Cliente.objects.filter(ativo=True, bloqueado=True).count()
+    total_vencidos = Cliente.objects.filter(ativo=True, validade__lt=date.today()).count()
+
     context = {
         'page_obj': page_obj,
         'sistemas': Sistema.objects.all(),
         'tecnicos': Tecnico.objects.all(),
         'today': date.today(),
+        # NOVAS VARIÁVEIS ENVIADAS PARA O TEMPLATE
+        'total_ativos': total_ativos,
+        'total_inativos': total_inativos,
+        'total_bloqueados': total_bloqueados,
+        'total_vencidos': total_vencidos,
     }
     return render(request, 'contratos/cliente/lista.html', context)
 

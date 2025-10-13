@@ -6,9 +6,14 @@
 <div class="card shadow-sm">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="m-0">Lista de Clientes</h5>
-        <a href="{% url 'criar_cliente' %}" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Novo Cliente
-        </a>
+        <div>
+            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalEstatisticas">
+                <i class="fas fa-chart-pie"></i> Resumo
+            </button>
+            <a href="{% url 'criar_cliente' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Novo Cliente
+            </a>
+        </div>
     </div>
     <div class="card-body">
         <form method="get" class="row g-3 mb-4 p-3 border rounded bg-light align-items-end">
@@ -50,7 +55,7 @@
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="mostrar_bloqueados" id="mostrar_bloqueados" {% if request.GET.mostrar_bloqueados %}checked{% endif %}>
                     <label class="form-check-label" for="mostrar_bloqueados" title="Mostrar apenas bloqueados">
-                        <i class="fas fa-lock"></i> Bloqueados
+                        <i class="fas fa-lock"></i>
                     </label>
                 </div>
             </div>
@@ -204,6 +209,43 @@
     </div>
 </div>
 {% endfor %}
+
+<div class="modal fade" id="modalEstatisticas" tabindex="-1" aria-labelledby="modalEstatisticasLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEstatisticasLabel">
+                    <i class="fas fa-chart-pie me-2"></i>Resumo de Clientes
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-group">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total de Clientes Ativos
+                        <span class="badge bg-success rounded-pill">{{ total_ativos }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Total de Clientes Inativos
+                        <span class="badge bg-secondary rounded-pill">{{ total_inativos }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Clientes Ativos Bloqueados
+                        <span class="badge bg-danger rounded-pill">{{ total_bloqueados }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Clientes Ativos Vencidos
+                        <span class="badge bg-warning text-dark rounded-pill">{{ total_vencidos }}</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
