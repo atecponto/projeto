@@ -4,17 +4,22 @@
 
 {% block content %}
 <div class="card shadow-sm">
-    <div class="card-header">
+    <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="m-0">{{ titulo }}</h5>
+        {% if form.instance.pk %}
+            {% if form.instance.ativo %}
+                <span class="badge bg-success">Cliente Ativo</span>
+            {% else %}
+                <span class="badge bg-danger">Cliente Inativo</span>
+            {% endif %}
+        {% endif %}
     </div>
     <div class="card-body">
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" id="clienteForm">
             {% csrf_token %}
             
             {% if form.non_field_errors %}
-                <div class="alert alert-danger">
-                    {{ form.non_field_errors }}
-                </div>
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
             {% endif %}
 
             <div class="mb-3">
@@ -52,40 +57,23 @@
                     <div class="btn-group btn-group-sm w-100" role="group">
                         <input type="radio" class="btn-check" name="{{ form.tipo_cobranca.name }}" id="id_tipo_mensal" value="M" autocomplete="off" {% if form.instance.tipo_cobranca == 'M' %}checked{% endif %}>
                         <label class="btn btn-outline-primary" for="id_tipo_mensal">Mensal</label>
-
                         <input type="radio" class="btn-check" name="{{ form.tipo_cobranca.name }}" id="id_tipo_anual" value="A" autocomplete="off" {% if form.instance.tipo_cobranca == 'A' %}checked{% endif %}>
                         <label class="btn btn-outline-primary" for="id_tipo_anual">Anual</label>
                     </div>
                     {% if form.tipo_cobranca.errors %}<div class="text-danger small mt-1">{{ form.tipo_cobranca.errors }}</div>{% endif %}
-
+                    
                     <div id="campos_mensal" style="display: none;" class="mt-2">
                         <div class="row align-items-center">
-                            <div class="col">
-                                <label for="id_valor_mensal" class="form-label form-label-sm">Valor Mensal</label>
-                                {{ form.valor_mensal }}
-                            </div>
+                            <div class="col"><label for="id_valor_mensal" class="form-label form-label-sm">Valor Mensal</label>{{ form.valor_mensal }}</div>
                             <div class="col-auto text-center pt-3">X</div>
-                            <div class="col-3">
-                                <label for="id_meses_contrato" class="form-label form-label-sm">Meses</label>
-                                {{ form.meses_contrato }}
-                            </div>
+                            <div class="col-3"><label for="id_meses_contrato" class="form-label form-label-sm">Meses</label>{{ form.meses_contrato }}</div>
                             <div class="col-auto text-center pt-3">=</div>
-                            <div class="col">
-                                <label for="id_valor_total" class="form-label form-label-sm">Valor Total</label>
-                                <input type="text" id="id_valor_total" class="form-control form-control-sm" readonly>
-                            </div>
+                            <div class="col"><label for="id_valor_total" class="form-label form-label-sm">Valor Total</label><input type="text" id="id_valor_total" class="form-control form-control-sm" readonly></div>
                         </div>
                         {% if form.valor_mensal.errors %}<div class="text-danger small mt-1">{{ form.valor_mensal.errors }}</div>{% endif %}
                     </div>
-
                     <div id="campos_anual" style="display: none;" class="mt-2">
-                        <div class="row">
-                            <div class="col-lg-6 col-md-8">
-                                <label for="id_valor_anual" class="form-label form-label-sm">Valor Anual</label>
-                                {{ form.valor_anual }}
-                                {% if form.valor_anual.errors %}<div class="text-danger small mt-1">{{ form.valor_anual.errors }}</div>{% endif %}
-                            </div>
-                        </div>
+                        <div class="row"><div class="col-lg-6 col-md-8"><label for="id_valor_anual" class="form-label form-label-sm">Valor Anual</label>{{ form.valor_anual }}{% if form.valor_anual.errors %}<div class="text-danger small mt-1">{{ form.valor_anual.errors }}</div>{% endif %}</div></div>
                     </div>
                 </div>
             </div>
@@ -98,26 +86,70 @@
             <div class="mb-3">
                 <label for="{{ form.pdf_anexo.id_for_label }}" class="form-label"><strong>Anexo PDF:</strong></label>
                 {{ form.pdf_anexo }}
-                {% if form.instance.pdf_anexo %}
-                    <small class="d-block mt-1">Arquivo atual: <a href="{{ form.instance.pdf_anexo.url }}" target="_blank">{{ form.instance.pdf_anexo.name }}</a></small>
-                {% endif %}
+                {% if form.instance.pdf_anexo %}<small class="d-block mt-1">Arquivo atual: <a href="{{ form.instance.pdf_anexo.url }}" target="_blank">{{ form.instance.pdf_anexo.name }}</a></small>{% endif %}
             </div>
 
-            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                <a href="{% url 'listar_clientes' %}" class="btn btn-secondary">
-                    <i class="fas fa-times"></i> Cancelar
-                </a>
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Salvar
-                </button>
+            <div class="form-check mb-3">
+                {{ form.bloqueado }}
+                <label class="form-check-label" for="{{ form.bloqueado.id_for_label }}">{{ form.bloqueado.label }}</label>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <div>
+                    {% if form.instance.pk %}
+                        <button type="button" 
+                                class="btn {% if form.instance.ativo %}btn-warning{% else %}btn-success{% endif %}"
+                                data-bs-toggle="modal" 
+                                data-bs-target="#confirmToggleAtivoModal">
+                            {% if form.instance.ativo %}
+                                <i class="fas fa-times-circle me-1"></i> Inativar
+                            {% else %}
+                                <i class="fas fa-check-circle me-1"></i> Ativar
+                            {% endif %}
+                        </button>
+                    {% endif %}
+                </div>
+                <div>
+                    <a href="{% url 'listar_clientes' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Salvar
+                    </button>
+                </div>
             </div>
         </form>
     </div>
 </div>
 
+{% if form.instance.pk %}
+<div class="modal fade" id="confirmToggleAtivoModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title" id="confirmModalLabel">Confirmação de Ação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Tem certeza que deseja <strong>{{ form.instance.ativo|yesno:"inativar,ativar" }}</strong> este cliente?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" 
+                        class="btn {% if form.instance.ativo %}btn-warning{% else %}btn-success{% endif %}"
+                        form="clienteForm"
+                        formaction="{% url 'toggle_ativo_cliente' form.instance.pk %}">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // ... (Script da máscara de CNPJ permanece o mesmo) ...
         const cnpjInput = document.getElementById('id_cnpj_mascara');
         if (cnpjInput) {
             cnpjInput.addEventListener('input', function (e) {
@@ -131,12 +163,10 @@
             });
         }
         
-        // --- SCRIPT DE COBRANÇA ATUALIZADO ---
         const radioMensal = document.getElementById('id_tipo_mensal');
         const radioAnual = document.getElementById('id_tipo_anual');
         const camposMensal = document.getElementById('campos_mensal');
         const camposAnual = document.getElementById('campos_anual');
-
         const valorMensalInput = document.getElementById('id_valor_mensal');
         const mesesContratoInput = document.getElementById('id_meses_contrato');
         const valorTotalInput = document.getElementById('id_valor_total');
@@ -154,27 +184,18 @@
             }
         }
 
-        // --- FUNÇÃO DE CÁLCULO 100% CORRIGIDA ---
         function calcularTotal() {
             let valorString = valorMensalInput.value;
             if (!valorString) {
                 valorTotalInput.value = (0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 return;
             }
-            
-            // Lógica para tratar formatos como "1.234,56" (BR) e "1234.56" (EUA)
-            // Se houver vírgula, assume que é o decimal
             if (valorString.includes(',')) {
-                // Remove os pontos de milhar e substitui a vírgula por ponto
                 valorString = valorString.replace(/\./g, '').replace(',', '.');
             }
-            // Se não houver vírgula, o número já está num formato que o parseFloat entende (ex: 59.90 ou 59)
-            
             const valorMensal = parseFloat(valorString) || 0;
             const meses = parseInt(mesesContratoInput.value) || 0;
             const total = valorMensal * meses;
-
-            // Formata o resultado final como moeda brasileira (R$)
             valorTotalInput.value = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 

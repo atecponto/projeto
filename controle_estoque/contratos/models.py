@@ -36,6 +36,8 @@ class Cliente(models.Model):
     
     bloqueado = models.BooleanField(default=False, verbose_name="Bloqueado")
 
+    ativo = models.BooleanField(default=True, verbose_name="Ativo")
+
 
     class Meta:
         ordering = ['empresa']

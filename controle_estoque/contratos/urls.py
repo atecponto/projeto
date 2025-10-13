@@ -14,11 +14,13 @@ urlpatterns = [
     path('tecnicos/editar/<int:pk>/', views.editar_tecnico, name='editar_tecnico'),
     path('tecnicos/excluir/<int:pk>/', views.excluir_tecnico, name='excluir_tecnico'),
 
-    # ADICIONE AS URLs DE CLIENTE ABAIXO
+    # URLs de Cliente
     path('clientes/', views.listar_clientes, name='listar_clientes'),
     path('clientes/novo/', views.criar_cliente, name='criar_cliente'),
     path('clientes/editar/<int:pk>/', views.editar_cliente, name='editar_cliente'),
     path('clientes/excluir/<int:pk>/', views.excluir_cliente, name='excluir_cliente'),
-
     path('clientes/toggle-bloqueado/<int:pk>/', views.toggle_bloqueado_cliente, name='toggle_bloqueado_cliente'),
+    
+    # Esta é a URL que a função de inativar usa
+    path('clientes/toggle-ativo/<int:pk>/', views.toggle_ativo_cliente, name='toggle_ativo_cliente'),
 ]

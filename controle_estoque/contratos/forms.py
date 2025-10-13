@@ -33,20 +33,22 @@ class TecnicoForm(forms.ModelForm):
 
 # ... (imports e outros forms) ...
 
+# ... (imports e outros forms) ...
+
 class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
-        # CAMPO 'bloqueado' ADICIONADO À LISTA
         fields = [
             'empresa', 'cnpj', 'sistema', 'tecnico', 'validade', 
             'descricao', 'pdf_anexo', 'tipo_cobranca', 'valor_mensal',
             'meses_contrato', 'valor_anual', 'bloqueado'
         ]
         widgets = {
-            'validade': forms.DateInput(attrs={'type': 'date'}),
+            # FORMATO DA DATA CORRIGIDO AQUI
+            'validade': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
             'descricao': forms.Textarea(attrs={'rows': 3}),
             'tipo_cobranca': forms.RadioSelect(),
-            'bloqueado': forms.CheckboxInput(attrs={'class': 'form-check-input'}), # Estilo para o checkbox
+            'bloqueado': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -61,7 +63,6 @@ class ClienteForm(forms.ModelForm):
         self.fields['meses_contrato'].widget.attrs.update({'id': 'id_meses_contrato', 'class': 'form-control form-control-sm'})
         self.fields['valor_anual'].widget.attrs.update({'id': 'id_valor_anual', 'placeholder': 'R$ 0,00', 'class': 'form-control form-control-sm'})
 
-    # ... (método clean permanece o mesmo) ...
     def clean(self):
         cleaned_data = super().clean()
         tipo_cobranca = cleaned_data.get("tipo_cobranca")

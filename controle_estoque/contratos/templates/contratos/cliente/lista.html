@@ -16,8 +16,8 @@
                 <label for="cnpj" class="form-label">Buscar por CNPJ</label>
                 <input type="text" name="cnpj" id="buscaCnpj" class="form-control" placeholder="Digite para buscar..." value="{{ request.GET.cnpj }}">
             </div>
-            <div class="col-md-3">
-                <label for="sistema" class="form-label">Filtrar por Sistema</label>
+            <div class="col-md-2">
+                <label for="sistema" class="form-label">Por Sistema</label>
                 <select name="sistema" id="sistema" class="form-select">
                     <option value="">Todos</option>
                     {% for s in sistemas %}
@@ -25,8 +25,8 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3">
-                <label for="tecnico" class="form-label">Filtrar por Técnico</label>
+            <div class="col-md-2">
+                <label for="tecnico" class="form-label">Por Técnico</label>
                 <select name="tecnico" id="tecnico" class="form-select">
                     <option value="">Todos</option>
                     {% for t in tecnicos %}
@@ -34,11 +34,17 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-1">
+            <div class="col-md-3 d-flex align-items-end">
+                <div class="form-check me-3">
+                    <input class="form-check-input" type="checkbox" name="mostrar_inativos" id="mostrar_inativos" {% if request.GET.mostrar_inativos %}checked{% endif %}>
+                    <label class="form-check-label" for="mostrar_inativos" title="Mostrar apenas inativos">
+                        <i class="fas fa-times-circle"></i> Inativos
+                    </label>
+                </div>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="mostrar_bloqueados" id="mostrar_bloqueados" {% if request.GET.mostrar_bloqueados %}checked{% endif %}>
                     <label class="form-check-label" for="mostrar_bloqueados" title="Mostrar apenas bloqueados">
-                        <i class="fas fa-lock" style="color: black;"></i>
+                        <i class="fas fa-lock"></i> Bloqueados
                     </label>
                 </div>
             </div>
@@ -125,7 +131,9 @@
                 <dl class="row">
                     <dt class="col-sm-3">Status</dt>
                     <dd class="col-sm-9">
-                        {% if cliente.bloqueado %}
+                        {% if not cliente.ativo %}
+                            <span class="badge bg-secondary">Inativo</span>
+                        {% elif cliente.bloqueado %}
                             <span class="badge bg-danger">Bloqueado</span>
                         {% else %}
                             <span class="badge bg-success">Ativo</span>
@@ -190,7 +198,6 @@
     </div>
 </div>
 {% endfor %}
-
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {

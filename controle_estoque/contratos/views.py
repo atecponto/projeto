@@ -1,13 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from .models import Sistema, Tecnico, Cliente
 from .forms import SistemaForm, TecnicoForm, ClienteForm
 from django.core.paginator import Paginator
-from datetime import date # <--- ADICIONE ESTA LINHA DE IMPORTAÇÃO
-from django.views.decorators.http import require_POST
+from datetime import date
 
-# --- Views de Sistema ---
+# --- Views de Sistema (sem alterações) ---
 @login_required
 def listar_sistemas(request):
     busca = request.GET.get('busca')
@@ -53,9 +53,10 @@ def excluir_sistema(request, pk):
         sistema.delete()
         messages.success(request, f'Sistema "{sistema.nome}" excluído com sucesso!')
         return redirect('listar_sistemas')
-    return render(request, 'contratos/sistema/confirmar_exclusao_sistema.html', {'sistema': sistema})
+    return render(request, 'contratos/sistema/excluir.html', {'sistema': sistema})
 
-# --- Views de Técnico ---
+
+# --- Views de Técnico (sem alterações) ---
 @login_required
 def listar_tecnicos(request):
     busca = request.GET.get('busca')
@@ -103,30 +104,32 @@ def excluir_tecnico(request, pk):
         return redirect('listar_tecnicos')
     return render(request, 'contratos/tecnicos/excluir.html', {'tecnico': tecnico})
 
+
 # --- Views de Cliente ---
 @login_required
 def listar_clientes(request):
     clientes_list = Cliente.objects.select_related('sistema', 'tecnico').all()
-
-    # Filtros existentes
     filtro_cnpj = request.GET.get('cnpj')
     filtro_sistema = request.GET.get('sistema')
     filtro_tecnico = request.GET.get('tecnico')
-    # NOVO FILTRO
     mostrar_bloqueados = request.GET.get('mostrar_bloqueados')
+    mostrar_inativos = request.GET.get('mostrar_inativos')
 
+    if mostrar_inativos == 'on':
+        clientes_list = clientes_list.filter(ativo=False)
+    else:
+        clientes_list = clientes_list.filter(ativo=True)
+    
     if filtro_cnpj:
         clientes_list = clientes_list.filter(cnpj__icontains=filtro_cnpj)
     if filtro_sistema:
         clientes_list = clientes_list.filter(sistema__id=filtro_sistema)
     if filtro_tecnico:
         clientes_list = clientes_list.filter(tecnico__id=filtro_tecnico)
-    
-    # LÓGICA DO NOVO FILTRO
     if mostrar_bloqueados == 'on':
         clientes_list = clientes_list.filter(bloqueado=True)
         
-    paginator = Paginator(clientes_list, 10)
+    paginator = Paginator(clientes_list.order_by('empresa'), 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
 
@@ -148,7 +151,6 @@ def criar_cliente(request):
             return redirect('listar_clientes')
     else:
         form = ClienteForm()
-
     context = {'form': form, 'titulo': 'Cadastrar Novo Cliente'}
     return render(request, 'contratos/cliente/form.html', context)
 
@@ -163,7 +165,6 @@ def editar_cliente(request, pk):
             return redirect('listar_clientes')
     else:
         form = ClienteForm(instance=cliente)
-
     context = {'form': form, 'titulo': f'Editando Cliente: {cliente.empresa}'}
     return render(request, 'contratos/cliente/form.html', context)
 
@@ -176,18 +177,28 @@ def excluir_cliente(request, pk):
         cliente.delete()
         messages.success(request, f'Cliente "{cliente.empresa}" excluído com sucesso!')
         return redirect('listar_clientes')
-
     return render(request, 'contratos/cliente/excluir.html', {'cliente': cliente})
 
-@require_POST # Garante que esta view só aceite requisições POST
+
+@require_POST
 @login_required
 def toggle_bloqueado_cliente(request, pk):
     cliente = get_object_or_404(Cliente, pk=pk)
-    # Inverte o status atual (se for True vira False, e vice-versa)
     cliente.bloqueado = not cliente.bloqueado
     cliente.save()
-    
     status = "bloqueado" if cliente.bloqueado else "desbloqueado"
     messages.success(request, f'Cliente "{cliente.empresa}" foi {status} com sucesso.')
+    return redirect('listar_clientes')
+
+# --- ESTA É A FUNÇÃO RESPONSÁVEL PELA AÇÃO DE INATIVAR ---
+@require_POST
+@login_required
+def toggle_ativo_cliente(request, pk):
+    cliente = get_object_or_404(Cliente, pk=pk)
+    cliente.ativo = not cliente.ativo # Inverte o status
+    cliente.save()
+    status = "ativado" if cliente.ativo else "inativado"
+    messages.success(request, f'Cliente "{cliente.empresa}" foi {status} com sucesso.')
     
+    # Redireciona para a lista, onde o cliente inativo ficará oculto
     return redirect('listar_clientes')
