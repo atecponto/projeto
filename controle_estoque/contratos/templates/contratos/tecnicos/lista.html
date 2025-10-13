@@ -33,7 +33,7 @@
                 <thead>
                     <tr>
                         <th>Nome</th>
-                        <th>Contratos Vinculados</th>
+                        <th>Clientes Vinculados</th>
                         <th class="text-end">Ações</th>
                     </tr>
                 </thead>
@@ -41,7 +41,8 @@
                     {% for tecnico in page_obj %}
                     <tr>
                         <td>{{ tecnico.nome }}</td>
-                        <td>0</td> <td class="text-end">
+                        <td>{{ tecnico.num_clientes }}</td>
+                        <td class="text-end">
                             <div class="btn-group btn-group-sm">
                                 <a href="{% url 'editar_tecnico' tecnico.pk %}" class="btn btn-warning">
                                     <i class="fas fa-edit"></i>
@@ -60,9 +61,7 @@
                 </tbody>
             </table>
         </div>
-
         {% include 'partials/pagination.html' %}
-
     </div>
 </div>
 {% endblock %}

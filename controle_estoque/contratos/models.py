@@ -23,21 +23,20 @@ class Cliente(models.Model):
     empresa = models.CharField(max_length=200)
     cnpj = models.CharField(max_length=18, unique=True, verbose_name="CNPJ")
     sistema = models.ForeignKey(Sistema, on_delete=models.PROTECT, verbose_name="Sistema")
-    tecnico = models.ForeignKey(Tecnico, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Técnico")
+    # GARANTINDO A PROTEÇÃO CONTRA EXCLUSÃO
+    tecnico = models.ForeignKey(Tecnico, on_delete=models.PROTECT, null=True, blank=True, verbose_name="Técnico")
     validade = models.DateField(verbose_name="Validade do Contrato")
     descricao = models.TextField(blank=True, null=True, verbose_name="Descrição")
     pdf_anexo = models.FileField(upload_to='contratos_pdfs/', blank=True, null=True, verbose_name="Anexo PDF")
     
-    # NOVOS CAMPOS DE COBRANÇA
+    # Campos de Cobrança
     tipo_cobranca = models.CharField(max_length=1, choices=TIPO_COBRANCA_CHOICES, null=True, blank=True)
     valor_mensal = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     meses_contrato = models.IntegerField(default=12, null=True, blank=True)
     valor_anual = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     
     bloqueado = models.BooleanField(default=False, verbose_name="Bloqueado")
-
     ativo = models.BooleanField(default=True, verbose_name="Ativo")
-
 
     class Meta:
         ordering = ['empresa']

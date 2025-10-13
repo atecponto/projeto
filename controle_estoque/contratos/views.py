@@ -88,13 +88,19 @@ def excluir_sistema(request, pk):
 # --- Views de Técnico (sem alterações) ---
 @login_required
 def listar_tecnicos(request):
+    # CÁLCULO CORRIGIDO: Agora conta os 'clientes' vinculados
+    tecnicos_list = Tecnico.objects.annotate(
+        num_clientes=Count('cliente')
+    ).order_by('nome')
+
     busca = request.GET.get('busca')
-    tecnicos_list = Tecnico.objects.all().order_by('nome')
     if busca:
         tecnicos_list = tecnicos_list.filter(nome__icontains=busca)
+    
     paginator = Paginator(tecnicos_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
+    
     return render(request, 'contratos/tecnicos/lista.html', {'page_obj': page_obj})
 
 @login_required
@@ -127,11 +133,24 @@ def editar_tecnico(request, pk):
 @login_required
 def excluir_tecnico(request, pk):
     tecnico = get_object_or_404(Tecnico, pk=pk)
+    em_uso = tecnico.cliente_set.exists()
+    
     if request.method == 'POST':
-        tecnico.delete()
-        messages.success(request, f'Técnico "{tecnico.nome}" excluído com sucesso!')
-        return redirect('listar_tecnicos')
-    return render(request, 'contratos/tecnicos/excluir.html', {'tecnico': tecnico})
+        # Adicionamos o bloco try...except para capturar o ProtectedError
+        try:
+            nome_tecnico = tecnico.nome
+            tecnico.delete()
+            messages.success(request, f'Técnico "{nome_tecnico}" excluído com sucesso!')
+            return redirect('listar_tecnicos')
+        except ProtectedError:
+            messages.error(request, f'Não foi possível excluir o técnico "{tecnico.nome}" pois ele está vinculado a um ou mais clientes.')
+            return redirect('listar_tecnicos')
+
+    context = {
+        'tecnico': tecnico,
+        'em_uso': em_uso,
+    }
+    return render(request, 'contratos/tecnicos/excluir.html', context)
 
 
 # --- Views de Cliente ---
