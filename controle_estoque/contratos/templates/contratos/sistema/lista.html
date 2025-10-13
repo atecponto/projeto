@@ -41,7 +41,8 @@
                     {% for sistema in page_obj %}
                     <tr>
                         <td>{{ sistema.nome }}</td>
-                        <td>0</td> <td class="text-end">
+                        <td>{{ sistema.num_clientes }}</td>
+                        <td class="text-end">
                             <div class="btn-group btn-group-sm">
                                 <a href="{% url 'editar_sistema' sistema.pk %}" class="btn btn-warning">
                                     <i class="fas fa-edit"></i>
@@ -60,7 +61,6 @@
                 </tbody>
             </table>
         </div>
-
         {% include 'partials/pagination.html' %}
     </div>
 </div>

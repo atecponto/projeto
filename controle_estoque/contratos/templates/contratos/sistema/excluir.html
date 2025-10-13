@@ -8,7 +8,17 @@
         <h5 class="m-0">Confirmar Exclusão</h5>
     </div>
     <div class="card-body">
-        <p>Tem certeza que deseja excluir o sistema <strong>"{{ sistema.nome }}"</strong>?</p>
+        
+        {% if em_uso %}
+            <div class="alert alert-warning">
+                <strong>Atenção!</strong> Este sistema não pode ser excluído pois está atualmente vinculado a um ou mais clientes.
+            </div>
+            <p>Para excluir, primeiro altere ou remova o vínculo com os clientes que o utilizam.</p>
+
+        {% else %}
+            <p>Tem certeza que deseja excluir o sistema <strong>"{{ sistema.nome }}"</strong>?</p>
+            <p class="text-muted small">Esta ação não pode ser desfeita.</p>
+        {% endif %}
         
         <form method="post">
             {% csrf_token %}
@@ -16,7 +26,7 @@
                 <a href="{% url 'listar_sistemas' %}" class="btn btn-secondary">
                     <i class="fas fa-times"></i> Cancelar
                 </a>
-                <button type="submit" class="btn btn-danger">
+                <button type="submit" class="btn btn-danger" {% if em_uso %}disabled{% endif %}>
                     <i class="fas fa-trash"></i> Confirmar Exclusão
                 </button>
             </div>

@@ -6,18 +6,26 @@ from .models import Sistema, Tecnico, Cliente
 from .forms import SistemaForm, TecnicoForm, ClienteForm
 from django.core.paginator import Paginator
 from datetime import date
+from django.db.models import ProtectedError
+from django.db.models import Count
 
 # --- Views de Sistema (sem alterações) ---
 @login_required
 def listar_sistemas(request):
+    # Adicionamos .annotate() para contar os clientes de cada sistema
+    sistemas_list = Sistema.objects.annotate(
+        num_clientes=Count('cliente')
+    ).order_by('nome')
+
     busca = request.GET.get('busca')
-    sistemas_list = Sistema.objects.all().order_by('nome')
     if busca:
         sistemas_list = sistemas_list.filter(nome__icontains=busca)
+    
     paginator = Paginator(sistemas_list, 10)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
-    return render(request, 'contratos/sistema/listar_sistemas.html', {'page_obj': page_obj})
+    
+    return render(request, 'contratos/sistema/lista.html', {'page_obj': page_obj})
 
 @login_required
 def criar_sistema(request):
@@ -29,8 +37,10 @@ def criar_sistema(request):
             return redirect('listar_sistemas')
     else:
         form = SistemaForm()
+    
     context = { 'form': form, 'titulo': 'Cadastrar Novo Sistema' }
-    return render(request, 'contratos/sistema/form_sistema.html', context)
+    # Caminho atualizado para 'form.html'
+    return render(request, 'contratos/sistema/form.html', context)
 
 @login_required
 def editar_sistema(request, pk):
@@ -43,17 +53,36 @@ def editar_sistema(request, pk):
             return redirect('listar_sistemas')
     else:
         form = SistemaForm(instance=sistema)
+    
     context = { 'form': form, 'titulo': f'Editando Sistema: {sistema.nome}' }
-    return render(request, 'contratos/sistema/form_sistema.html', context)
+    # Caminho atualizado para 'form.html'
+    return render(request, 'contratos/sistema/form.html', context)
 
 @login_required
 def excluir_sistema(request, pk):
     sistema = get_object_or_404(Sistema, pk=pk)
+    
+    # Agora apenas verificamos se existe algum cliente vinculado (True ou False)
+    em_uso = sistema.cliente_set.exists()
+    
     if request.method == 'POST':
-        sistema.delete()
-        messages.success(request, f'Sistema "{sistema.nome}" excluído com sucesso!')
-        return redirect('listar_sistemas')
-    return render(request, 'contratos/sistema/excluir.html', {'sistema': sistema})
+        if em_uso:
+            messages.error(request, 'Este sistema não pode ser excluído pois está em uso.')
+            return redirect('listar_sistemas')
+        try:
+            nome_sistema = sistema.nome
+            sistema.delete()
+            messages.success(request, f'Sistema "{nome_sistema}" excluído com sucesso!')
+            return redirect('listar_sistemas')
+        except ProtectedError: # Apenas como uma segurança extra
+            messages.error(request, f'Não foi possível excluir o sistema "{sistema.nome}" pois ele está vinculado a um ou mais clientes.')
+            return redirect('listar_sistemas')
+
+    context = {
+        'sistema': sistema,
+        'em_uso': em_uso, # Enviamos a variável booleana para o template
+    }
+    return render(request, 'contratos/sistema/excluir.html', context)
 
 
 # --- Views de Técnico (sem alterações) ---
