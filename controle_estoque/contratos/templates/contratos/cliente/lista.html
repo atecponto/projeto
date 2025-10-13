@@ -36,6 +36,12 @@
             </div>
             <div class="col-md-3 d-flex align-items-end">
                 <div class="form-check me-3">
+                    <input class="form-check-input" type="checkbox" name="mostrar_vencidos" id="mostrar_vencidos" {% if request.GET.mostrar_vencidos %}checked{% endif %}>
+                    <label class="form-check-label" for="mostrar_vencidos" title="Mostrar apenas vencidos">
+                        <i class="fas fa-calendar-times"></i> Vencidos
+                    </label>
+                </div>
+                <div class="form-check me-3">
                     <input class="form-check-input" type="checkbox" name="mostrar_inativos" id="mostrar_inativos" {% if request.GET.mostrar_inativos %}checked{% endif %}>
                     <label class="form-check-label" for="mostrar_inativos" title="Mostrar apenas inativos">
                         <i class="fas fa-times-circle"></i> Inativos

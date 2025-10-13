@@ -109,17 +109,23 @@ def excluir_tecnico(request, pk):
 @login_required
 def listar_clientes(request):
     clientes_list = Cliente.objects.select_related('sistema', 'tecnico').all()
+
+    # Pega todos os parâmetros de filtro da URL
     filtro_cnpj = request.GET.get('cnpj')
     filtro_sistema = request.GET.get('sistema')
     filtro_tecnico = request.GET.get('tecnico')
     mostrar_bloqueados = request.GET.get('mostrar_bloqueados')
     mostrar_inativos = request.GET.get('mostrar_inativos')
+    # NOVO FILTRO ADICIONADO AQUI
+    mostrar_vencidos = request.GET.get('mostrar_vencidos')
 
+    # Aplica o filtro de status (Ativo/Inativo)
     if mostrar_inativos == 'on':
         clientes_list = clientes_list.filter(ativo=False)
     else:
         clientes_list = clientes_list.filter(ativo=True)
     
+    # Aplica os outros filtros
     if filtro_cnpj:
         clientes_list = clientes_list.filter(cnpj__icontains=filtro_cnpj)
     if filtro_sistema:
@@ -128,6 +134,10 @@ def listar_clientes(request):
         clientes_list = clientes_list.filter(tecnico__id=filtro_tecnico)
     if mostrar_bloqueados == 'on':
         clientes_list = clientes_list.filter(bloqueado=True)
+
+    # LÓGICA DO NOVO FILTRO DE VENCIDOS
+    if mostrar_vencidos == 'on':
+        clientes_list = clientes_list.filter(validade__lt=date.today())
         
     paginator = Paginator(clientes_list.order_by('empresa'), 10)
     page_number = request.GET.get('page')
