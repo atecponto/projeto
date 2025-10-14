@@ -23,4 +23,5 @@ urlpatterns = [
     
     # Esta é a URL que a função de inativar usa
     path('clientes/toggle-ativo/<int:pk>/', views.toggle_ativo_cliente, name='toggle_ativo_cliente'),
+    path('relatorio/', views.relatorio_contratos, name='relatorio_contratos'),
 ]

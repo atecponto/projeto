@@ -8,6 +8,13 @@ from django.core.paginator import Paginator
 from datetime import date
 from django.db.models import ProtectedError
 from django.db.models import Count
+from .forms import RelatorioContratosForm
+from inventario.utils import render_to_pdf # Reutilizando a função de PDF do seu outro app
+from django.utils import timezone
+import calendar
+from django.http import HttpResponse
+from django.db.models import Sum
+from datetime import date, datetime, time
 
 # --- Views de Sistema (sem alterações) ---
 @login_required
@@ -266,3 +273,56 @@ def toggle_ativo_cliente(request, pk):
     
     # Redireciona para a lista, onde o cliente inativo ficará oculto
     return redirect('listar_clientes')
+
+@login_required
+def relatorio_contratos(request):
+    if request.method == 'POST':
+        form = RelatorioContratosForm(request.POST)
+        if form.is_valid():
+            data_inicio = form.cleaned_data['data_inicio']
+            data_fim = form.cleaned_data['data_fim']
+            sistema = form.cleaned_data['sistema']
+            tecnico = form.cleaned_data['tecnico']
+
+            # --- LÓGICA DE FILTRO CORRIGIDA E MAIS PRECISA ---
+            # Converte as datas para datetimes para incluir o dia inteiro
+            start_datetime = timezone.make_aware(datetime.combine(data_inicio, time.min))
+            end_datetime = timezone.make_aware(datetime.combine(data_fim, time.max))
+            
+            clientes = Cliente.objects.filter(
+                data_criacao__range=[start_datetime, end_datetime]
+            )
+
+            if sistema:
+                clientes = clientes.filter(sistema=sistema)
+            if tecnico:
+                clientes = clientes.filter(tecnico=tecnico)
+
+            context = {
+                'clientes': clientes.order_by('data_criacao'),
+                'data_inicio': data_inicio,
+                'data_fim': data_fim,
+                'sistema_filtrado': sistema,
+                'tecnico_filtrado': tecnico,
+                'data_geracao': timezone.now(),
+            }
+            
+            pdf = render_to_pdf('contratos/relatorio/pdf_template.html', context)
+            if pdf:
+                response = HttpResponse(pdf, content_type='application/pdf')
+                filename = f"relatorio_clientes_{data_inicio.strftime('%Y%m%d')}_{data_fim.strftime('%Y%m%d')}.pdf"
+                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                return response
+            return HttpResponse("Erro ao gerar o PDF.", status=500)
+    else:
+        today = timezone.now().date()
+        start_of_month = today.replace(day=1)
+        _, last_day_of_month = calendar.monthrange(today.year, today.month)
+        end_of_month = today.replace(day=last_day_of_month)
+        
+        form = RelatorioContratosForm(initial={
+            'data_inicio': start_of_month,
+            'data_fim': end_of_month
+        })
+
+    return render(request, 'contratos/relatorio/form.html', {'form': form})

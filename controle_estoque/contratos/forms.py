@@ -25,16 +25,6 @@ class TecnicoForm(forms.ModelForm):
             'placeholder': 'Digite o nome do técnico'
         })
 
-# ... (outros forms) ...
-
-# ... (imports e outros forms) ...
-
-# ... (imports e outros forms) ...
-
-# ... (imports e outros forms) ...
-
-# ... (imports e outros forms) ...
-
 class ClienteForm(forms.ModelForm):
     class Meta:
         model = Cliente
@@ -44,7 +34,6 @@ class ClienteForm(forms.ModelForm):
             'meses_contrato', 'valor_anual', 'bloqueado'
         ]
         widgets = {
-            # FORMATO DA DATA CORRIGIDO AQUI
             'validade': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date'}),
             'descricao': forms.Textarea(attrs={'rows': 3}),
             'tipo_cobranca': forms.RadioSelect(),
@@ -76,3 +65,26 @@ class ClienteForm(forms.ModelForm):
             self.add_error('valor_anual', 'Este campo é obrigatório para cobrança anual.')
             
         return cleaned_data
+
+# --- NOVO FORMULÁRIO DE RELATÓRIO ADICIONADO AQUI ---
+class RelatorioContratosForm(forms.Form):
+    data_inicio = forms.DateField(
+        label="Data de Início",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    data_fim = forms.DateField(
+        label="Data de Fim",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    sistema = forms.ModelChoiceField(
+        queryset=Sistema.objects.all(),
+        required=False,
+        label="Filtrar por Sistema",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    tecnico = forms.ModelChoiceField(
+        queryset=Tecnico.objects.all(),
+        required=False,
+        label="Filtrar por Técnico",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )

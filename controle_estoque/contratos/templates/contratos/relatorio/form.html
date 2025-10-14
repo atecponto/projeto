@@ -1,0 +1,49 @@
+{% extends 'contratos/base_contrato.html' %}
+
+{% block title %}Relatório de Contratos{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h5 class="m-0">Gerar Relatório de Contratos</h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    {{ form.data_inicio.label_tag }}
+                    {{ form.data_inicio }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.data_fim.label_tag }}
+                    {{ form.data_fim }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.sistema.label_tag }}
+                    <select name="sistema" class="form-select">
+                        <option value="">Todos os Sistemas</option>
+                        {% for s in form.sistema.field.queryset %}
+                            <option value="{{ s.id }}">{{ s.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    {{ form.tecnico.label_tag }}
+                    <select name="tecnico" class="form-select">
+                        <option value="">Todos os Técnicos</option>
+                        {% for t in form.tecnico.field.queryset %}
+                            <option value="{{ t.id }}">{{ t.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-file-pdf"></i> Gerar PDF
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

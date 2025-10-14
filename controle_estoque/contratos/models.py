@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 class Sistema(models.Model):
     nome = models.CharField(max_length=100, unique=True)
@@ -23,6 +24,7 @@ class Cliente(models.Model):
     empresa = models.CharField(max_length=200)
     cnpj = models.CharField(max_length=18, unique=True, verbose_name="CNPJ")
     sistema = models.ForeignKey(Sistema, on_delete=models.PROTECT, verbose_name="Sistema")
+    data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
     # GARANTINDO A PROTEÇÃO CONTRA EXCLUSÃO
     tecnico = models.ForeignKey(Tecnico, on_delete=models.PROTECT, null=True, blank=True, verbose_name="Técnico")
     validade = models.DateField(verbose_name="Validade do Contrato")
