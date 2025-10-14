@@ -284,8 +284,6 @@ def relatorio_contratos(request):
             sistema = form.cleaned_data['sistema']
             tecnico = form.cleaned_data['tecnico']
 
-            # --- LÓGICA DE FILTRO CORRIGIDA E MAIS PRECISA ---
-            # Converte as datas para datetimes para incluir o dia inteiro
             start_datetime = timezone.make_aware(datetime.combine(data_inicio, time.min))
             end_datetime = timezone.make_aware(datetime.combine(data_fim, time.max))
             
@@ -297,6 +295,10 @@ def relatorio_contratos(request):
                 clientes = clientes.filter(sistema=sistema)
             if tecnico:
                 clientes = clientes.filter(tecnico=tecnico)
+            
+            resumo_por_sistema = clientes.values('sistema__nome').annotate(
+                quantidade=Count('id')
+            ).order_by('sistema__nome')
 
             context = {
                 'clientes': clientes.order_by('data_criacao'),
@@ -305,6 +307,7 @@ def relatorio_contratos(request):
                 'sistema_filtrado': sistema,
                 'tecnico_filtrado': tecnico,
                 'data_geracao': timezone.now(),
+                'resumo_por_sistema': resumo_por_sistema,
             }
             
             pdf = render_to_pdf('contratos/relatorio/pdf_template.html', context)
@@ -325,4 +328,5 @@ def relatorio_contratos(request):
             'data_fim': end_of_month
         })
 
+    # A CORREÇÃO FOI FEITA NA LINHA ABAIXO
     return render(request, 'contratos/relatorio/form.html', {'form': form})

@@ -10,18 +10,55 @@
         table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
         th { background-color: #f2f2f2; }
-        .summary { margin-bottom: 20px; }
+        .summary-container {
+            display: -pdf-keep-with-next; /* Evita quebra de página entre o resumo e a tabela */
+        }
+        .summary-box {
+            width: 100%;
+            font-size: 10px;
+        }
+        .summary-left {
+            width: 60%;
+            vertical-align: top;
+        }
+        .summary-right {
+            width: 40%;
+            vertical-align: top;
+            border-left: 1px solid #eee;
+            padding-left: 10px;
+        }
+        .summary-right h4 {
+            margin-top: 0;
+            margin-bottom: 5px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
     <h1>Relatório de Clientes Cadastrados</h1>
     
-    <div class="summary">
-        <p><strong>Período de Cadastro:</strong> de {{ data_inicio|date:"d/m/Y" }} a {{ data_fim|date:"d/m/Y" }}</p>
-        <p><strong>Filtro de Sistema:</strong> {{ sistema_filtrado.nome|default:"Todos" }}</p>
-        <p><strong>Filtro de Técnico:</strong> {{ tecnico_filtrado.nome|default:"Todos" }}</p>
-        <p><strong>Data de Geração:</strong> {{ data_geracao|date:"d/m/Y H:i" }}</p>
-        <p><strong>Total de Clientes Encontrados:</strong> {{ clientes|length }}</p>
+    <div class="summary-container">
+        <table class="summary-box" style="border: none;">
+            <tr>
+                <td class="summary-left" style="border: none;">
+                    <p><strong>Período de Cadastro:</strong> de {{ data_inicio|date:"d/m/Y" }} a {{ data_fim|date:"d/m/Y" }}</p>
+                    <p><strong>Filtro de Sistema:</strong> {{ sistema_filtrado.nome|default:"Todos" }}</p>
+                    <p><strong>Filtro de Técnico:</strong> {{ tecnico_filtrado.nome|default:"Todos" }}</p>
+                    <p><strong>Data de Geração:</strong> {{ data_geracao|date:"d/m/Y H:i" }}</p>
+                    <p><strong>Total de Clientes Encontrados:</strong> {{ clientes|length }}</p>
+                </td>
+                <td class="summary-right" style="border: none;">
+                    <h4>Clientes por Sistema:</h4>
+                    {% if resumo_por_sistema %}
+                        {% for item in resumo_por_sistema %}
+                            {{ item.sistema__nome }}: <strong>{{ item.quantidade }}</strong><br>
+                        {% endfor %}
+                    {% else %}
+                        Nenhum.
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
     </div>
 
     <table>
@@ -30,8 +67,8 @@
                 <th>Empresa</th>
                 <th>CNPJ</th>
                 <th>Sistema</th>
-                <th>Validade</th>
                 <th>Data Cadastro</th>
+                <th>Validade</th>
                 <th>Tipo de Cobrança</th>
                 <th>Valor</th>
             </tr>
@@ -42,8 +79,8 @@
                 <td>{{ cliente.empresa }}</td>
                 <td>{{ cliente.cnpj }}</td>
                 <td>{{ cliente.sistema.nome }}</td>
-                <td>{{ cliente.validade|date:"d/m/Y" }}</td>
                 <td>{{ cliente.data_criacao|date:"d/m/Y" }}</td>
+                <td>{{ cliente.validade|date:"d/m/Y" }}</td>
                 <td>
                     {% if cliente.tipo_cobranca == 'M' %}
                         Mensal
