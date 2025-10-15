@@ -88,3 +88,17 @@ class RelatorioContratosForm(forms.Form):
         label="Filtrar por Técnico",
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+
+class RenovacaoForm(forms.Form):
+    porcentagem_reajuste = forms.DecimalField(
+        label="Porcentagem de Reajuste (%)",
+        max_digits=5,
+        decimal_places=2,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 5.5'})
+    )
+    nova_validade = forms.DateField(
+        label="Nova Data de Validade do Contrato",
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+    )
+    # Este campo ficará oculto, mas guardará os IDs dos clientes que queremos renovar
+    cliente_ids = forms.CharField(widget=forms.HiddenInput())

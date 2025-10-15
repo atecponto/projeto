@@ -25,4 +25,5 @@ urlpatterns = [
     path('clientes/toggle-ativo/<int:pk>/', views.toggle_ativo_cliente, name='toggle_ativo_cliente'),
     path('relatorio/', views.relatorio_contratos, name='relatorio_contratos'),
     path('renovacao/', views.renovacao_list, name='renovacao_list'),
+    path('renovar/', views.renovar_contratos, name='renovar_contratos'),
 ]

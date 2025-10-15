@@ -376,3 +376,28 @@ def renovacao_list(request):
     }
     # A única diferença é que renderizamos um novo template
     return render(request, 'contratos/renovacao/lista.html', context)
+
+@login_required
+def renovar_contratos(request):
+    if request.method == 'POST':
+        # Pega a lista de IDs dos checkboxes que foram marcados
+        cliente_ids = request.POST.getlist('cliente_ids')
+        
+        if not cliente_ids:
+            messages.error(request, 'Nenhum cliente foi selecionado para renovação.')
+            return redirect('renovacao_list')
+
+        # Busca os objetos Cliente correspondentes aos IDs
+        clientes_selecionados = Cliente.objects.filter(pk__in=cliente_ids)
+        
+        # Cria o formulário de renovação
+        form = RenovacaoForm(initial={'cliente_ids': ','.join(cliente_ids)})
+        
+        context = {
+            'form': form,
+            'clientes_selecionados': clientes_selecionados
+        }
+        return render(request, 'contratos/renovacao/form.html', context)
+    
+    # Se alguém tentar acessar a página sem selecionar clientes, redireciona de volta
+    return redirect('renovacao_list')
