@@ -8,70 +8,64 @@
         <h5 class="m-0">Renovação de Contratos</h5>
     </div>
     <div class="card-body">
-        <form method="post" id="renewalForm" action="#"> {% csrf_token %}
-
-            <div class="row g-3 mb-4 p-3 border rounded bg-light align-items-end">
-                <div class="col-md-3">
-                    <label for="cnpj" class="form-label">Buscar por CNPJ</label>
-                    <input type="text" name="cnpj" id="buscaCnpj" class="form-control" placeholder="Digite para buscar..." value="{{ request.GET.cnpj }}">
+        
+        <form method="get" id="filterForm" class="row g-3 mb-4 p-3 border rounded bg-light align-items-end">
+            <div class="col-md-3">
+                <label for="cnpj" class="form-label">Buscar por CNPJ</label>
+                <input type="text" name="cnpj" id="buscaCnpj" class="form-control" placeholder="Digite para buscar..." value="{{ request.GET.cnpj }}">
+            </div>
+            <div class="col-md-2">
+                <label for="sistema" class="form-label">Por Sistema</label>
+                <select name="sistema" id="sistema" class="form-select">
+                    <option value="">Todos</option>
+                    {% for s in sistemas %}
+                        <option value="{{ s.id }}" {% if request.GET.sistema == s.id|stringformat:"s" %}selected{% endif %}>{{ s.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="tecnico" class="form-label">Por Técnico</label>
+                <select name="tecnico" id="tecnico" class="form-select">
+                    <option value="">Todos</option>
+                    {% for t in tecnicos %}
+                        <option value="{{ t.id }}" {% if request.GET.tecnico == t.id|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end" style="padding-bottom: 8px;">
+                <div class="form-check me-3">
+                    <input class="form-check-input" type="checkbox" name="mostrar_vencidos" id="mostrar_vencidos" {% if request.GET.mostrar_vencidos %}checked{% endif %}>
+                    <label class="form-check-label" for="mostrar_vencidos" title="Mostrar apenas vencidos">Vencidos</label>
                 </div>
-                <div class="col-md-2">
-                    <label for="sistema" class="form-label">Por Sistema</label>
-                    <select name="sistema" id="sistema" class="form-select">
-                        <option value="">Todos</option>
-                        {% for s in sistemas %}
-                            <option value="{{ s.id }}" {% if request.GET.sistema == s.id|stringformat:"s" %}selected{% endif %}>{{ s.nome }}</option>
-                        {% endfor %}
-                    </select>
+                <div class="form-check me-3">
+                    <input class="form-check-input" type="checkbox" name="mostrar_inativos" id="mostrar_inativos" {% if request.GET.mostrar_inativos %}checked{% endif %}>
+                    <label class="form-check-label" for="mostrar_inativos" title="Mostrar apenas inativos">Inativos</label>
                 </div>
-                <div class="col-md-2">
-                    <label for="tecnico" class="form-label">Por Técnico</label>
-                    <select name="tecnico" id="tecnico" class="form-select">
-                        <option value="">Todos</option>
-                        {% for t in tecnicos %}
-                            <option value="{{ t.id }}" {% if request.GET.tecnico == t.id|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3 d-flex align-items-end" style="padding-bottom: 8px;">
-                    <div class="form-check me-3">
-                        <input class="form-check-input" type="checkbox" name="mostrar_vencidos" id="mostrar_vencidos" {% if request.GET.mostrar_vencidos %}checked{% endif %}>
-                        <label class="form-check-label" for="mostrar_vencidos" title="Mostrar apenas vencidos">
-                            <i class="fas fa-calendar-times"></i> Vencidos
-                        </label>
-                    </div>
-                    <div class="form-check me-3">
-                        <input class="form-check-input" type="checkbox" name="mostrar_inativos" id="mostrar_inativos" {% if request.GET.mostrar_inativos %}checked{% endif %}>
-                        <label class="form-check-label" for="mostrar_inativos" title="Mostrar apenas inativos">
-                            <i class="fas fa-times-circle"></i> Inativos
-                        </label>
-                    </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="mostrar_bloqueados" id="mostrar_bloqueados" {% if request.GET.mostrar_bloqueados %}checked{% endif %}>
-                        <label class="form-check-label" for="mostrar_bloqueados" title="Mostrar apenas bloqueados">
-                            <i class="fas fa-lock"></i>
-                        </label>
-                    </div>
-                </div>
-                <div class="col-md-2">
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-success" form="renewalForm">
-                            <i class="fas fa-sync-alt"></i> Renovar
-                        </button>
-                        <button type="button" onclick="document.getElementById('filterForm').submit();" class="btn btn-primary">Filtrar</button>
-                    </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="mostrar_bloqueados" id="mostrar_bloqueados" {% if request.GET.mostrar_bloqueados %}checked{% endif %}>
+                    <label class="form-check-label" for="mostrar_bloqueados" title="Mostrar apenas bloqueados">Bloqueados</label>
                 </div>
             </div>
-            
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags|default:'success' }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
+            <div class="col-md-2">
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-success" form="renewalForm">
+                        <i class="fas fa-sync-alt"></i> Renovar
+                    </button>
+                    <button type="submit" class="btn btn-primary" form="filterForm">Filtrar</button>
+                </div>
+            </div>
+        </form>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'success' }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
 
+        <form method="post" id="renewalForm" action="#"> {% csrf_token %}
             <div class="table-responsive">
                 <table class="table table-striped table-hover">
                     <thead>
@@ -91,7 +85,7 @@
                         {% for cliente in page_obj %}
                         <tr class="{% if cliente.validade < today %}table-danger{% endif %}">
                             <td class="text-center">
-                                <input class="form-check-input client-checkbox" type="checkbox" name="cliente_ids" value="{{ cliente.pk }}" form="renewalForm">
+                                <input class="form-check-input client-checkbox" type="checkbox" name="cliente_ids" value="{{ cliente.pk }}">
                             </td>
                             <td>{{ cliente.empresa }}</td>
                             <td class="cnpj-col">{{ cliente.cnpj }}</td>
@@ -126,8 +120,6 @@
                 </table>
             </div>
         </form>
-
-        <form method="get" id="filterForm" class="d-none"></form>
         
         {% include 'partials/pagination.html' %}
     </div>
