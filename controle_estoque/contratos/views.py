@@ -330,3 +330,49 @@ def relatorio_contratos(request):
 
     # A CORREÇÃO FOI FEITA NA LINHA ABAIXO
     return render(request, 'contratos/relatorio/form.html', {'form': form})
+
+@login_required
+def renovacao_list(request):
+    # A lógica de busca e filtro é exatamente a mesma da lista de clientes
+    clientes_list = Cliente.objects.select_related('sistema', 'tecnico').all()
+
+    filtro_cnpj = request.GET.get('cnpj')
+    filtro_sistema = request.GET.get('sistema')
+    filtro_tecnico = request.GET.get('tecnico')
+    mostrar_bloqueados = request.GET.get('mostrar_bloqueados')
+    mostrar_inativos = request.GET.get('mostrar_inativos')
+    mostrar_vencidos = request.GET.get('mostrar_vencidos')
+
+    if mostrar_inativos == 'on':
+        clientes_list = clientes_list.filter(ativo=False)
+    else:
+        clientes_list = clientes_list.filter(ativo=True)
+    
+    if filtro_cnpj:
+        clientes_list = clientes_list.filter(cnpj__icontains=filtro_cnpj)
+    if filtro_sistema:
+        clientes_list = clientes_list.filter(sistema__id=filtro_sistema)
+    if filtro_tecnico:
+        clientes_list = clientes_list.filter(tecnico__id=filtro_tecnico)
+    if mostrar_bloqueados == 'on':
+        clientes_list = clientes_list.filter(bloqueado=True)
+    if mostrar_vencidos == 'on':
+        clientes_list = clientes_list.filter(validade__lt=date.today())
+        
+    paginator = Paginator(clientes_list.order_by('empresa'), 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    # Preparamos os mesmos dados de contexto
+    context = {
+        'page_obj': page_obj,
+        'sistemas': Sistema.objects.all(),
+        'tecnicos': Tecnico.objects.all(),
+        'today': date.today(),
+        'total_ativos': Cliente.objects.filter(ativo=True).count(),
+        'total_inativos': Cliente.objects.filter(ativo=False).count(),
+        'total_bloqueados': Cliente.objects.filter(ativo=True, bloqueado=True).count(),
+        'total_vencidos': Cliente.objects.filter(ativo=True, validade__lt=date.today()).count(),
+    }
+    # A única diferença é que renderizamos um novo template
+    return render(request, 'contratos/renovacao/lista.html', context)

@@ -1,0 +1,246 @@
+{% extends 'contratos/base_contrato.html' %}
+
+{% block title %}Renovação de Contratos{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="m-0">Renovação de Contratos</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" id="renewalForm" action="#"> {% csrf_token %}
+
+            <div class="row g-3 mb-4 p-3 border rounded bg-light align-items-end">
+                <div class="col-md-3">
+                    <label for="cnpj" class="form-label">Buscar por CNPJ</label>
+                    <input type="text" name="cnpj" id="buscaCnpj" class="form-control" placeholder="Digite para buscar..." value="{{ request.GET.cnpj }}">
+                </div>
+                <div class="col-md-2">
+                    <label for="sistema" class="form-label">Por Sistema</label>
+                    <select name="sistema" id="sistema" class="form-select">
+                        <option value="">Todos</option>
+                        {% for s in sistemas %}
+                            <option value="{{ s.id }}" {% if request.GET.sistema == s.id|stringformat:"s" %}selected{% endif %}>{{ s.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="tecnico" class="form-label">Por Técnico</label>
+                    <select name="tecnico" id="tecnico" class="form-select">
+                        <option value="">Todos</option>
+                        {% for t in tecnicos %}
+                            <option value="{{ t.id }}" {% if request.GET.tecnico == t.id|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end" style="padding-bottom: 8px;">
+                    <div class="form-check me-3">
+                        <input class="form-check-input" type="checkbox" name="mostrar_vencidos" id="mostrar_vencidos" {% if request.GET.mostrar_vencidos %}checked{% endif %}>
+                        <label class="form-check-label" for="mostrar_vencidos" title="Mostrar apenas vencidos">
+                            <i class="fas fa-calendar-times"></i> Vencidos
+                        </label>
+                    </div>
+                    <div class="form-check me-3">
+                        <input class="form-check-input" type="checkbox" name="mostrar_inativos" id="mostrar_inativos" {% if request.GET.mostrar_inativos %}checked{% endif %}>
+                        <label class="form-check-label" for="mostrar_inativos" title="Mostrar apenas inativos">
+                            <i class="fas fa-times-circle"></i> Inativos
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="mostrar_bloqueados" id="mostrar_bloqueados" {% if request.GET.mostrar_bloqueados %}checked{% endif %}>
+                        <label class="form-check-label" for="mostrar_bloqueados" title="Mostrar apenas bloqueados">
+                            <i class="fas fa-lock"></i>
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success" form="renewalForm">
+                            <i class="fas fa-sync-alt"></i> Renovar
+                        </button>
+                        <button type="button" onclick="document.getElementById('filterForm').submit();" class="btn btn-primary">Filtrar</button>
+                    </div>
+                </div>
+            </div>
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;" class="text-center">
+                                <input class="form-check-input" type="checkbox" id="selectAllCheckbox" title="Marcar Todos">
+                            </th>
+                            <th>Empresa</th>
+                            <th>CNPJ</th>
+                            <th>Sistema</th>
+                            <th>Validade</th>
+                            <th class="text-center">Bloqueado</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabelaClientes">
+                        {% for cliente in page_obj %}
+                        <tr class="{% if cliente.validade < today %}table-danger{% endif %}">
+                            <td class="text-center">
+                                <input class="form-check-input client-checkbox" type="checkbox" name="cliente_ids" value="{{ cliente.pk }}" form="renewalForm">
+                            </td>
+                            <td>{{ cliente.empresa }}</td>
+                            <td class="cnpj-col">{{ cliente.cnpj }}</td>
+                            <td>{{ cliente.sistema.nome }}</td>
+                            <td>{{ cliente.validade|date:"d/m/Y" }}</td>
+                            <td class="text-center">
+                                <form method="post" action="{% url 'toggle_bloqueado_cliente' cliente.pk %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-link text-decoration-none p-0 m-0">
+                                        {% if cliente.bloqueado %}
+                                            <i class="fas fa-lock text-danger" title="Cliente Bloqueado. Clique para desbloquear."></i>
+                                        {% else %}
+                                            <i class="fas fa-lock-open text-success" title="Cliente Ativo. Clique para bloquear."></i>
+                                        {% endif %}
+                                    </button>
+                                </form>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#modalCliente{{ cliente.pk }}">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">Nenhum cliente encontrado.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </form>
+
+        <form method="get" id="filterForm" class="d-none"></form>
+        
+        {% include 'partials/pagination.html' %}
+    </div>
+</div>
+
+{% for cliente in page_obj %}
+<div class="modal fade" id="modalCliente{{ cliente.pk }}" tabindex="-1" aria-labelledby="modalClienteLabel{{ cliente.pk }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalClienteLabel{{ cliente.pk }}">Ficha Cadastral: {{ cliente.empresa }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row">
+                    <dt class="col-sm-3">Status</dt>
+                    <dd class="col-sm-9">
+                        {% if not cliente.ativo %}
+                            <span class="badge bg-secondary">Inativo</span>
+                        {% elif cliente.bloqueado %}
+                            <span class="badge bg-danger">Bloqueado</span>
+                        {% else %}
+                            <span class="badge bg-success">Ativo</span>
+                        {% endif %}
+                    </dd>
+                    <dt class="col-sm-3">Empresa</dt><dd class="col-sm-9">{{ cliente.empresa }}</dd>
+                    <dt class="col-sm-3">CNPJ</dt><dd class="col-sm-9">{{ cliente.cnpj }}</dd>
+                    <dt class="col-sm-3">Validade do Contrato</dt><dd class="col-sm-9">{{ cliente.validade|date:"d/m/Y" }} {% if cliente.validade < today %}<span class="badge bg-danger">Vencido</span>{% endif %}</dd>
+                    <dt class="col-sm-3">Sistema</dt><dd class="col-sm-9">{{ cliente.sistema.nome }}</dd>
+                    <dt class="col-sm-3">Técnico Responsável</dt><dd class="col-sm-9">{{ cliente.tecnico.nome|default:"Não informado" }}</dd>
+                    <dt class="col-sm-3">Descrição</dt><dd class="col-sm-9">{{ cliente.descricao|default:"Não informada"|linebreaksbr }}</dd>
+                    <dt class="col-sm-3">Anexo</dt>
+                    <dd class="col-sm-9">
+                        {% if cliente.pdf_anexo %}
+                            <a href="{{ cliente.pdf_anexo.url }}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-pdf"></i> Ver PDF Anexado</a>
+                        {% else %}
+                            Nenhum arquivo anexado.
+                        {% endif %}
+                    </dd>
+                </dl>
+                <hr>
+                <h6>Detalhes da Cobrança</h6>
+                <dl class="row">
+                    {% if cliente.tipo_cobranca == 'M' %}
+                        <dt class="col-sm-3">Tipo</dt><dd class="col-sm-9">Mensal</dd>
+                        <dt class="col-sm-3">Valor Mensal</dt><dd class="col-sm-9">R$ {{ cliente.valor_mensal|default:"0,00" }}</dd>
+                        <dt class="col-sm-3">Meses</dt><dd class="col-sm-9">{{ cliente.meses_contrato }}</dd>
+                        <dt class="col-sm-3">Valor Total</dt><dd class="col-sm-9 fw-bold">R$ {{ cliente.valor_total_calculado|default:"0,00" }}</dd>
+                    {% elif cliente.tipo_cobranca == 'A' %}
+                        <dt class="col-sm-3">Tipo</dt><dd class="col-sm-9">Anual</dd>
+                        <dt class="col-sm-3">Valor Anual</dt><dd class="col-sm-9 fw-bold">R$ {{ cliente.valor_anual|default:"0,00" }}</dd>
+                    {% else %}
+                        <dt class="col-sm-12">Nenhuma informação de cobrança cadastrada.</dt>
+                    {% endif %}
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Script de busca dinâmica
+        const buscaInput = document.getElementById('buscaCnpj');
+        const tabelaBody = document.getElementById('tabelaClientes');
+        const linhasTabela = tabelaBody.getElementsByTagName('tr');
+
+        if (buscaInput) {
+            buscaInput.addEventListener('keyup', function() {
+                const termoBusca = this.value.replace(/[\.\-\/]/g, '').toUpperCase();
+                for (let i = 0; i < linhasTabela.length; i++) {
+                    const linha = linhasTabela[i];
+                    const celulaCnpj = linha.querySelector('.cnpj-col');
+                    if (celulaCnpj) {
+                        const textoCelula = celulaCnpj.textContent || celulaCnpj.innerText;
+                        const textoCelulaLimpo = textoCelula.replace(/[\.\-\/]/g, '').toUpperCase();
+                        if (textoCelulaLimpo.includes(termoBusca)) {
+                            linha.style.display = '';
+                        } else {
+                            linha.style.display = 'none';
+                        }
+                    }
+                }
+            });
+        }
+
+        // SCRIPT PARA FUNCIONALIDADE "MARCAR TODOS"
+        const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+        const clientCheckboxes = document.querySelectorAll('.client-checkbox');
+
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                clientCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+            });
+
+            clientCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    let allChecked = true;
+                    clientCheckboxes.forEach(cb => {
+                        if (!cb.checked) {
+                            allChecked = false;
+                        }
+                    });
+                    selectAllCheckbox.checked = allChecked;
+                });
+            });
+        }
+    });
+</script>
+{% endblock %}
