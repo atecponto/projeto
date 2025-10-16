@@ -16,6 +16,7 @@ from django.http import HttpResponse
 from django.db.models import Sum
 from datetime import date, datetime, time
 from decimal import Decimal
+from dateutil.relativedelta import relativedelta
 
 # --- Views de Sistema (sem alterações) ---
 @login_required
@@ -384,13 +385,14 @@ def renovacao_list(request):
 
 @login_required
 def renovar_contratos(request):
-    # Este 'if' trata o envio do formulário final com a porcentagem e a nova data.
-    if request.method == 'POST' and 'porcentagem_reajuste' in request.POST:
+    # Trata o envio do formulário final com a porcentagem e os meses.
+    if request.method == 'POST' and 'meses_a_adicionar' in request.POST:
         form = RenovacaoForm(request.POST)
         if form.is_valid():
             cliente_ids_str = form.cleaned_data['cliente_ids']
             cliente_ids = cliente_ids_str.split(',')
-            nova_validade = form.cleaned_data['nova_validade']
+            # --- LÓGICA DE DATA ATUALIZADA ---
+            meses_a_adicionar = form.cleaned_data['meses_a_adicionar']
             porcentagem_reajuste = form.cleaned_data['porcentagem_reajuste']
 
             clientes_atualizados = []
@@ -400,15 +402,18 @@ def renovar_contratos(request):
                 try:
                     cliente = Cliente.objects.get(pk=int(cliente_id))
                     
+                    # Aplica o reajuste de valor
                     fator_reajuste = Decimal(1) + (Decimal(porcentagem_reajuste) / Decimal(100))
-                    
                     if cliente.valor_mensal:
                         cliente.valor_mensal *= fator_reajuste
-                    
                     if cliente.valor_anual:
                         cliente.valor_anual *= fator_reajuste
 
+                    # --- CÁLCULO INDIVIDUAL DA NOVA VALIDADE ---
+                    # Pega a validade atual e soma os meses informados
+                    nova_validade = cliente.validade + relativedelta(months=meses_a_adicionar)
                     cliente.validade = nova_validade
+                    
                     cliente.save()
                     clientes_atualizados.append(cliente.empresa)
                 except Cliente.DoesNotExist:
@@ -417,7 +422,7 @@ def renovar_contratos(request):
             if clientes_atualizados:
                 messages.success(request, f"Contratos renovados com sucesso para: {', '.join(clientes_atualizados)}.")
             if clientes_com_erro:
-                messages.error(request, f"Não foi possível encontrar os clientes com os seguintes IDs: {', '.join(clientes_com_erro)}.")
+                messages.error(request, f"Não foi possível encontrar os clientes com IDs: {', '.join(clientes_com_erro)}.")
             
             return redirect('renovacao_list')
         
@@ -428,12 +433,11 @@ def renovar_contratos(request):
             context = {
                 'form': form,
                 'clientes_selecionados': clientes_selecionados,
-                'titulo': 'Renovar Contratos Selecionados'
+                'titulo': 'Aplicar Renovação de Contratos'
             }
-            # ALTERAÇÃO AQUI
             return render(request, 'contratos/renovacao_form.html', context)
 
-    # Este 'if' trata o envio da lista de clientes selecionados.
+    # Trata o envio da lista de clientes selecionados da página anterior.
     elif request.method == 'POST':
         cliente_ids = request.POST.getlist('cliente_ids')
         if not cliente_ids:
@@ -446,9 +450,8 @@ def renovar_contratos(request):
         context = {
             'form': form,
             'clientes_selecionados': clientes_selecionados,
-            'titulo': 'Renovar Contratos Selecionados'
+            'titulo': 'Aplicar Renovação de Contratos'
         }
-        # E ALTERAÇÃO AQUI TAMBÉM
         return render(request, 'contratos/renovacao_form.html', context)
 
     return redirect('renovacao_list')

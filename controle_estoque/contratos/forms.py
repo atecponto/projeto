@@ -96,10 +96,14 @@ class RenovacaoForm(forms.Form):
         decimal_places=2,
         widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 2.50'})
     )
-    nova_validade = forms.DateField(
-        label='Nova Validade do Contrato',
+    # --- MUDANÇA APLICADA AQUI ---
+    # Trocamos o DateField por um IntegerField
+    meses_a_adicionar = forms.IntegerField(
+        label='Adicionar Meses ao Contrato',
         required=True,
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+        min_value=1,
+        initial=12, # Sugere 12 meses (1 ano) como padrão
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
-    # Este campo guardará os IDs dos clientes selecionados, mas ficará oculto para o usuário.
+    # O campo oculto continua igual
     cliente_ids = forms.CharField(widget=forms.HiddenInput())
