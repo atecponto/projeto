@@ -132,7 +132,7 @@
 
 {% for cliente in page_obj %}
 <div class="modal fade" id="modalCliente{{ cliente.pk }}" tabindex="-1" aria-labelledby="modalClienteLabel{{ cliente.pk }}" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable"> {# Adicionado modal-dialog-scrollable #}
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="modalClienteLabel{{ cliente.pk }}">Ficha Cadastral: {{ cliente.empresa }}</h5>
@@ -181,7 +181,6 @@
                     {% endif %}
                 </dl>
                 
-                {#--- INÍCIO DA SEÇÃO DE HISTÓRICO DE RENOVAÇÕES ---#}
                 {% if cliente.historico_renovacoes.all %}
                 <hr>
                 <h6>Histórico de Renovações</h6>
@@ -190,7 +189,16 @@
                         <li class="list-group-item">
                             <div class="d-flex w-100 justify-content-between">
                                 <h6 class="mb-1">Renovação em {{ historico.data_renovacao|date:"d/m/Y" }}</h6>
-                                <small class="text-muted">Por: {{ historico.usuario_responsavel.username|default:'N/A' }}</small>
+                                <small class="text-muted">
+                                    Por: {{ historico.usuario_responsavel.username|default:'N/A' }}
+                                    
+                                    <button type="button" class="btn btn-link text-danger p-0 ms-2" style="vertical-align: middle;" title="Excluir este registro"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#confirmDeleteModal" 
+                                            data-delete-url="{% url 'excluir_historico_renovacao' historico.pk %}">
+                                        <i class="fas fa-times-circle"></i>
+                                    </button>
+                                </small>
                             </div>
                             <p class="mb-1">
                                 Valor foi de <strong>R$ {{ historico.valor_anterior|default:'0,00' }}</strong> para <strong>R$ {{ historico.novo_valor|default:'0,00' }}</strong> (+{{ historico.porcentagem_reajuste }}%).
@@ -200,8 +208,6 @@
                     {% endfor %}
                 </ul>
                 {% endif %}
-                {#--- FIM DA SEÇÃO DE HISTÓRICO ---#}
-
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
@@ -211,7 +217,6 @@
 </div>
 {% endfor %}
 
-{# O modal de estatísticas e o script JS continuam os mesmos #}
 <div class="modal fade" id="modalEstatisticas" tabindex="-1" aria-labelledby="modalEstatisticasLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -244,6 +249,28 @@
     </div>
 </div>
 
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir este registro do histórico?</p>
+                <p class="text-danger"><strong>Atenção:</strong> Esta ação não pode ser desfeita.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="delete-form" method="POST" action="">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Confirmar Exclusão</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const buscaInput = document.getElementById('buscaCnpj');
@@ -266,6 +293,17 @@
                         }
                     }
                 }
+            });
+        }
+
+        // SCRIPT PARA O MODAL DE CONFIRMAÇÃO
+        const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+        if (confirmDeleteModal) {
+            confirmDeleteModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const deleteUrl = button.getAttribute('data-delete-url');
+                const deleteForm = confirmDeleteModal.querySelector('#delete-form');
+                deleteForm.setAttribute('action', deleteUrl);
             });
         }
     });

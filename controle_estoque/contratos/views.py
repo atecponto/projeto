@@ -17,6 +17,7 @@ from django.db.models import Sum
 from datetime import date, datetime, time
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
+from django.views.decorators.http import require_POST
 
 
 # --- Views de Sistema (sem alterações) ---
@@ -465,3 +466,20 @@ def renovar_contratos(request):
         return render(request, 'contratos/renovacao_form.html', context)
 
     return redirect('renovacao_list')
+
+@login_required
+@require_POST # Garante que esta view só pode ser chamada com um método POST, por segurança
+def excluir_historico_renovacao(request, pk):
+    # Encontra o registro de histórico específico ou retorna um erro 404 se não existir
+    historico = get_object_or_404(HistoricoRenovacao, pk=pk)
+    
+    # Guarda o ID do cliente para saber para qual página voltar
+    cliente_id = historico.cliente.id
+    
+    # Deleta o registro do banco de dados
+    historico.delete()
+    
+    messages.success(request, "Registro de histórico excluído com sucesso.")
+    
+    # Redireciona de volta para a lista de clientes
+    return redirect('listar_clientes')

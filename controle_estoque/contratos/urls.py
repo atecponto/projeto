@@ -26,4 +26,5 @@ urlpatterns = [
     path('relatorio/', views.relatorio_contratos, name='relatorio_contratos'),
     path('renovacao/', views.renovacao_list, name='renovacao_list'),
     path('renovar/', views.renovar_contratos, name='renovar_contratos'),
+    path('historico/excluir/<int:pk>/', views.excluir_historico_renovacao, name='excluir_historico_renovacao'),
 ]
