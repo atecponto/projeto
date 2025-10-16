@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from .models import Sistema, Tecnico, Cliente
-from .forms import SistemaForm, TecnicoForm, ClienteForm
+from .forms import SistemaForm, TecnicoForm, ClienteForm, RenovacaoForm, RelatorioContratosForm
 from django.core.paginator import Paginator
 from datetime import date
 from django.db.models import ProtectedError
@@ -15,6 +15,7 @@ import calendar
 from django.http import HttpResponse
 from django.db.models import Sum
 from datetime import date, datetime, time
+from decimal import Decimal
 
 # --- Views de Sistema (sem alterações) ---
 @login_required
@@ -333,71 +334,121 @@ def relatorio_contratos(request):
 
 @login_required
 def renovacao_list(request):
-    # A lógica de busca e filtro é exatamente a mesma da lista de clientes
-    clientes_list = Cliente.objects.select_related('sistema', 'tecnico').all()
-
-    filtro_cnpj = request.GET.get('cnpj')
-    filtro_sistema = request.GET.get('sistema')
-    filtro_tecnico = request.GET.get('tecnico')
-    mostrar_bloqueados = request.GET.get('mostrar_bloqueados')
-    mostrar_inativos = request.GET.get('mostrar_inativos')
+    # Obtém os parâmetros de filtro da URL
+    cnpj = request.GET.get('cnpj')
+    sistema_id = request.GET.get('sistema')
+    tecnico_id = request.GET.get('tecnico')
     mostrar_vencidos = request.GET.get('mostrar_vencidos')
+    mostrar_inativos = request.GET.get('mostrar_inativos')
+    mostrar_bloqueados = request.GET.get('mostrar_bloqueados')
 
-    if mostrar_inativos == 'on':
-        clientes_list = clientes_list.filter(ativo=False)
+    # ---- LÓGICA DE FILTRO CORRIGIDA ----
+    # Começa com todos os clientes. A filtragem de ativos/inativos é tratada abaixo.
+    clientes = Cliente.objects.all()
+
+    # Filtra por inativos: se a caixa estiver marcada, mostra SÓ os inativos.
+    # Senão, mostra SÓ os ativos (comportamento padrão).
+    if mostrar_inativos:
+        clientes = clientes.filter(ativo=False)
     else:
-        clientes_list = clientes_list.filter(ativo=True)
-    
-    if filtro_cnpj:
-        clientes_list = clientes_list.filter(cnpj__icontains=filtro_cnpj)
-    if filtro_sistema:
-        clientes_list = clientes_list.filter(sistema__id=filtro_sistema)
-    if filtro_tecnico:
-        clientes_list = clientes_list.filter(tecnico__id=filtro_tecnico)
-    if mostrar_bloqueados == 'on':
-        clientes_list = clientes_list.filter(bloqueado=True)
-    if mostrar_vencidos == 'on':
-        clientes_list = clientes_list.filter(validade__lt=date.today())
-        
-    paginator = Paginator(clientes_list.order_by('empresa'), 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+        clientes = clientes.filter(ativo=True)
 
-    # Preparamos os mesmos dados de contexto
+    # Aplica os outros filtros sobre o resultado anterior
+    if cnpj:
+        clientes = clientes.filter(cnpj__icontains=cnpj)
+    if sistema_id:
+        clientes = clientes.filter(sistema_id=sistema_id)
+    if tecnico_id:
+        clientes = clientes.filter(tecnico_id=tecnico_id)
+    if mostrar_vencidos:
+        clientes = clientes.filter(validade__lt=date.today())
+    if mostrar_bloqueados:
+        clientes = clientes.filter(bloqueado=True)
+    
+    # Ordena o resultado final
+    clientes = clientes.order_by('empresa')
+    
+    # Prepara a lista de IDs para a funcionalidade "Marcar Todos"
+    all_client_ids = list(clientes.values_list('pk', flat=True))
+    all_client_ids_str = ','.join(map(str, all_client_ids))
+    
     context = {
-        'page_obj': page_obj,
+        'clientes': clientes, 
         'sistemas': Sistema.objects.all(),
         'tecnicos': Tecnico.objects.all(),
         'today': date.today(),
-        'total_ativos': Cliente.objects.filter(ativo=True).count(),
-        'total_inativos': Cliente.objects.filter(ativo=False).count(),
-        'total_bloqueados': Cliente.objects.filter(ativo=True, bloqueado=True).count(),
-        'total_vencidos': Cliente.objects.filter(ativo=True, validade__lt=date.today()).count(),
+        'total_clientes_filtrados': clientes.count(),
+        'all_client_ids_str': all_client_ids_str,
     }
-    # A única diferença é que renderizamos um novo template
     return render(request, 'contratos/renovacao/lista.html', context)
 
 @login_required
 def renovar_contratos(request):
-    if request.method == 'POST':
-        # Pega a lista de IDs dos checkboxes que foram marcados
-        cliente_ids = request.POST.getlist('cliente_ids')
+    # Este 'if' trata o envio do formulário final com a porcentagem e a nova data.
+    if request.method == 'POST' and 'porcentagem_reajuste' in request.POST:
+        form = RenovacaoForm(request.POST)
+        if form.is_valid():
+            cliente_ids_str = form.cleaned_data['cliente_ids']
+            cliente_ids = cliente_ids_str.split(',')
+            nova_validade = form.cleaned_data['nova_validade']
+            porcentagem_reajuste = form.cleaned_data['porcentagem_reajuste']
+
+            clientes_atualizados = []
+            clientes_com_erro = []
+
+            for cliente_id in cliente_ids:
+                try:
+                    cliente = Cliente.objects.get(pk=int(cliente_id))
+                    
+                    fator_reajuste = Decimal(1) + (Decimal(porcentagem_reajuste) / Decimal(100))
+                    
+                    if cliente.valor_mensal:
+                        cliente.valor_mensal *= fator_reajuste
+                    
+                    if cliente.valor_anual:
+                        cliente.valor_anual *= fator_reajuste
+
+                    cliente.validade = nova_validade
+                    cliente.save()
+                    clientes_atualizados.append(cliente.empresa)
+                except Cliente.DoesNotExist:
+                    clientes_com_erro.append(cliente_id)
+
+            if clientes_atualizados:
+                messages.success(request, f"Contratos renovados com sucesso para: {', '.join(clientes_atualizados)}.")
+            if clientes_com_erro:
+                messages.error(request, f"Não foi possível encontrar os clientes com os seguintes IDs: {', '.join(clientes_com_erro)}.")
+            
+            return redirect('renovacao_list')
         
+        else:
+            cliente_ids_str = request.POST.get('cliente_ids', '')
+            cliente_ids = cliente_ids_str.split(',') if cliente_ids_str else []
+            clientes_selecionados = Cliente.objects.filter(pk__in=cliente_ids)
+            context = {
+                'form': form,
+                'clientes_selecionados': clientes_selecionados,
+                'titulo': 'Renovar Contratos Selecionados'
+            }
+            # ALTERAÇÃO AQUI
+            return render(request, 'contratos/renovacao_form.html', context)
+
+    # Este 'if' trata o envio da lista de clientes selecionados.
+    elif request.method == 'POST':
+        cliente_ids = request.POST.getlist('cliente_ids')
         if not cliente_ids:
-            messages.error(request, 'Nenhum cliente foi selecionado para renovação.')
+            messages.error(request, "Nenhum cliente foi selecionado.")
             return redirect('renovacao_list')
 
-        # Busca os objetos Cliente correspondentes aos IDs
-        clientes_selecionados = Cliente.objects.filter(pk__in=cliente_ids)
-        
-        # Cria o formulário de renovação
         form = RenovacaoForm(initial={'cliente_ids': ','.join(cliente_ids)})
+        clientes_selecionados = Cliente.objects.filter(pk__in=cliente_ids)
         
         context = {
             'form': form,
-            'clientes_selecionados': clientes_selecionados
+            'clientes_selecionados': clientes_selecionados,
+            'titulo': 'Renovar Contratos Selecionados'
         }
-        return render(request, 'contratos/renovacao/form.html', context)
-    
-    # Se alguém tentar acessar a página sem selecionar clientes, redireciona de volta
+        # E ALTERAÇÃO AQUI TAMBÉM
+        return render(request, 'contratos/renovacao_form.html', context)
+
     return redirect('renovacao_list')

@@ -2,6 +2,27 @@
 
 {% block title %}Renovação de Contratos{% endblock %}
 
+{% block extra_css %}
+{#-- CSS para criar o efeito de cabeçalho fixo e lista rolável --#}
+<style>
+    .table-container-sticky {
+        max-height: 65vh; /* Aumentei um pouco a altura para melhor visualização */
+        overflow-y: auto; /* Adiciona a barra de rolagem vertical */
+        position: relative;
+    }
+
+    .table-container-sticky thead th {
+        position: -webkit-sticky; /* Compatibilidade com Safari */
+        position: sticky;
+        top: 0; /* Fixa o cabeçalho no topo da área de rolagem */
+        z-index: 2;
+        background-color: #ffffff; /* Fundo branco para não ficar transparente */
+        border-bottom-width: 2px;
+    }
+</style>
+{% endblock %}
+
+
 {% block content %}
 <div class="card shadow-sm">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -75,7 +96,8 @@
                 </button>
             </div>
 
-            <div class="table-responsive">
+            {#-- Container com a classe CSS para a rolagem e cabeçalho fixo --#}
+            <div class="table-container-sticky">
                 <table class="table table-striped table-hover">
                     <thead>
                         <tr>
@@ -91,7 +113,8 @@
                         </tr>
                     </thead>
                     <tbody id="tabelaClientes">
-                        {% for cliente in page_obj %}
+                        {#-- MUDANÇA: Iteramos sobre 'clientes' (lista completa) --#}
+                        {% for cliente in clientes %}
                         <tr class="{% if cliente.validade < today %}table-danger{% endif %}">
                             <td class="text-center">
                                 <input class="form-check-input client-checkbox" type="checkbox" name="cliente_ids" value="{{ cliente.pk }}">
@@ -125,11 +148,12 @@
             </div>
         </form>
         
-        {% include 'partials/pagination.html' %}
+        {#-- A PAGINAÇÃO FOI REMOVIDA DAQUI --#}
     </div>
 </div>
 
-{% for cliente in page_obj %}
+{#-- O CÓDIGO DO MODAL É MANTIDO, MAS AGORA USA A VARIÁVEL 'clientes' --#}
+{% for cliente in clientes %}
 <div class="modal fade" id="modalCliente{{ cliente.pk }}" tabindex="-1" aria-labelledby="modalClienteLabel{{ cliente.pk }}" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -190,7 +214,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Script de busca dinâmica
+        // Script de busca dinâmica (SEU SCRIPT ORIGINAL MANTIDO)
         const buscaInput = document.getElementById('buscaCnpj');
         const tabelaBody = document.getElementById('tabelaClientes');
         const linhasTabela = tabelaBody.getElementsByTagName('tr');
@@ -214,26 +238,16 @@
             });
         }
 
-        // SCRIPT PARA FUNCIONALIDADE "MARCAR TODOS"
+        // SCRIPT PARA FUNCIONALIDADE "MARCAR TODOS" ATUALIZADO
         const selectAllCheckbox = document.getElementById('selectAllCheckbox');
         const clientCheckboxes = document.querySelectorAll('.client-checkbox');
+        const renewalForm = document.getElementById('renewalForm');
 
         if (selectAllCheckbox) {
+            // Marca ou desmarca todos os checkboxes da lista
             selectAllCheckbox.addEventListener('change', function() {
                 clientCheckboxes.forEach(checkbox => {
                     checkbox.checked = this.checked;
-                });
-            });
-
-            clientCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    let allChecked = true;
-                    clientCheckboxes.forEach(cb => {
-                        if (!cb.checked) {
-                            allChecked = false;
-                        }
-                    });
-                    selectAllCheckbox.checked = allChecked;
                 });
             });
         }
