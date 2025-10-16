@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 
 class Sistema(models.Model):
     nome = models.CharField(max_length=100, unique=True)
@@ -51,3 +52,21 @@ class Cliente(models.Model):
         if self.tipo_cobranca == self.MENSAL and self.valor_mensal and self.meses_contrato:
             return self.valor_mensal * self.meses_contrato
         return None
+    
+class HistoricoRenovacao(models.Model):
+    cliente = models.ForeignKey(Cliente, on_delete=models.CASCADE, related_name='historico_renovacoes')
+    data_renovacao = models.DateTimeField(auto_now_add=True, verbose_name="Data da Renovação")
+    validade_anterior = models.DateField(verbose_name="Validade Anterior")
+    nova_validade = models.DateField(verbose_name="Nova Validade")
+    valor_anterior = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Valor Anterior")
+    porcentagem_reajuste = models.DecimalField(max_digits=5, decimal_places=2, verbose_name="Reajuste Aplicado (%)")
+    novo_valor = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, verbose_name="Novo Valor")
+    usuario_responsavel = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, verbose_name="Usuário Responsável")
+
+    class Meta:
+        ordering = ['-data_renovacao']
+        verbose_name = "Histórico de Renovação"
+        verbose_name_plural = "Históricos de Renovações"
+
+    def __str__(self):
+        return f"Renovação de {self.cliente.empresa} em {self.data_renovacao.strftime('%d/%m/%Y')}"

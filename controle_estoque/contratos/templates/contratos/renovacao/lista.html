@@ -6,17 +6,17 @@
 {#-- CSS para criar o efeito de cabeçalho fixo e lista rolável --#}
 <style>
     .table-container-sticky {
-        max-height: 65vh; /* Aumentei um pouco a altura para melhor visualização */
-        overflow-y: auto; /* Adiciona a barra de rolagem vertical */
+        max-height: 65vh;
+        overflow-y: auto;
         position: relative;
     }
 
     .table-container-sticky thead th {
-        position: -webkit-sticky; /* Compatibilidade com Safari */
+        position: -webkit-sticky;
         position: sticky;
-        top: 0; /* Fixa o cabeçalho no topo da área de rolagem */
+        top: 0;
         z-index: 2;
-        background-color: #ffffff; /* Fundo branco para não ficar transparente */
+        background-color: #ffffff;
         border-bottom-width: 2px;
     }
 </style>
@@ -96,7 +96,6 @@
                 </button>
             </div>
 
-            {#-- Container com a classe CSS para a rolagem e cabeçalho fixo --#}
             <div class="table-container-sticky">
                 <table class="table table-striped table-hover">
                     <thead>
@@ -113,7 +112,6 @@
                         </tr>
                     </thead>
                     <tbody id="tabelaClientes">
-                        {#-- MUDANÇA: Iteramos sobre 'clientes' (lista completa) --#}
                         {% for cliente in clientes %}
                         <tr class="{% if cliente.validade < today %}table-danger{% endif %}">
                             <td class="text-center">
@@ -147,15 +145,12 @@
                 </table>
             </div>
         </form>
-        
-        {#-- A PAGINAÇÃO FOI REMOVIDA DAQUI --#}
     </div>
 </div>
 
-{#-- O CÓDIGO DO MODAL É MANTIDO, MAS AGORA USA A VARIÁVEL 'clientes' --#}
 {% for cliente in clientes %}
 <div class="modal fade" id="modalCliente{{ cliente.pk }}" tabindex="-1" aria-labelledby="modalClienteLabel{{ cliente.pk }}" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"> {# Permite a rolagem do conteúdo do modal #}
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="modalClienteLabel{{ cliente.pk }}">Ficha Cadastral: {{ cliente.empresa }}</h5>
@@ -189,7 +184,7 @@
                     </dd>
                 </dl>
                 <hr>
-                <h6>Detalhes da Cobrança</h6>
+                <h6>Detalhes da Cobrança Atual</h6>
                 <dl class="row">
                     {% if cliente.tipo_cobranca == 'M' %}
                         <dt class="col-sm-3">Tipo</dt><dd class="col-sm-9">Mensal</dd>
@@ -203,6 +198,28 @@
                         <dt class="col-sm-12">Nenhuma informação de cobrança cadastrada.</dt>
                     {% endif %}
                 </dl>
+                
+                {#--- INÍCIO DA SEÇÃO DE HISTÓRICO DE RENOVAÇÕES (ADICIONADA AQUI) ---#}
+                {% if cliente.historico_renovacoes.all %}
+                <hr>
+                <h6>Histórico de Renovações</h6>
+                <ul class="list-group list-group-flush">
+                    {% for historico in cliente.historico_renovacoes.all %}
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Renovação em {{ historico.data_renovacao|date:"d/m/Y" }}</h6>
+                                <small class="text-muted">Por: {{ historico.usuario_responsavel.username|default:'N/A' }}</small>
+                            </div>
+                            <p class="mb-1">
+                                Valor foi de <strong>R$ {{ historico.valor_anterior|default:'0,00' }}</strong> para <strong>R$ {{ historico.novo_valor|default:'0,00' }}</strong> (+{{ historico.porcentagem_reajuste }}%).
+                            </p>
+                            <small class="text-muted">Validade alterada de {{ historico.validade_anterior|date:"d/m/Y" }} para {{ historico.nova_validade|date:"d/m/Y" }}.</small>
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                {#--- FIM DA SEÇÃO DE HISTÓRICO ---#}
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
@@ -214,7 +231,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Script de busca dinâmica (SEU SCRIPT ORIGINAL MANTIDO)
         const buscaInput = document.getElementById('buscaCnpj');
         const tabelaBody = document.getElementById('tabelaClientes');
         const linhasTabela = tabelaBody.getElementsByTagName('tr');
@@ -238,13 +254,11 @@
             });
         }
 
-        // SCRIPT PARA FUNCIONALIDADE "MARCAR TODOS" ATUALIZADO
         const selectAllCheckbox = document.getElementById('selectAllCheckbox');
         const clientCheckboxes = document.querySelectorAll('.client-checkbox');
         const renewalForm = document.getElementById('renewalForm');
 
         if (selectAllCheckbox) {
-            // Marca ou desmarca todos os checkboxes da lista
             selectAllCheckbox.addEventListener('change', function() {
                 clientCheckboxes.forEach(checkbox => {
                     checkbox.checked = this.checked;

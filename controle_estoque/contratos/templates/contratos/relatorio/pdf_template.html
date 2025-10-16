@@ -11,7 +11,7 @@
         th, td { border: 1px solid #ddd; padding: 6px; text-align: left; }
         th { background-color: #f2f2f2; }
         .summary-container {
-            display: -pdf-keep-with-next; /* Evita quebra de página entre o resumo e a tabela */
+            display: -pdf-keep-with-next;
         }
         .summary-box {
             width: 100%;
@@ -56,6 +56,15 @@
                     {% else %}
                         Nenhum.
                     {% endif %}
+
+                    {# --- INÍCIO DA SEÇÃO ADICIONADA --- #}
+                    {% if resumo_por_tecnico %}
+                        <h4 style="margin-top: 15px;">Clientes por Técnico:</h4>
+                        {% for item in resumo_por_tecnico %}
+                            {{ item.tecnico__nome }}: <strong>{{ item.quantidade }}</strong><br>
+                        {% endfor %}
+                    {% endif %}
+                    {# --- FIM DA SEÇÃO ADICIONADA --- #}
                 </td>
             </tr>
         </table>

@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
-from .models import Sistema, Tecnico, Cliente
+from .models import Sistema, Tecnico, Cliente, HistoricoRenovacao
 from .forms import SistemaForm, TecnicoForm, ClienteForm, RenovacaoForm, RelatorioContratosForm
 from django.core.paginator import Paginator
 from datetime import date
@@ -17,6 +17,7 @@ from django.db.models import Sum
 from datetime import date, datetime, time
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
+
 
 # --- Views de Sistema (sem alterações) ---
 @login_required
@@ -283,59 +284,57 @@ def relatorio_contratos(request):
         if form.is_valid():
             data_inicio = form.cleaned_data['data_inicio']
             data_fim = form.cleaned_data['data_fim']
-            sistema = form.cleaned_data['sistema']
-            tecnico = form.cleaned_data['tecnico']
+            sistema_id = form.cleaned_data['sistema']
+            tecnico_id = form.cleaned_data['tecnico']
 
-            start_datetime = timezone.make_aware(datetime.combine(data_inicio, time.min))
-            end_datetime = timezone.make_aware(datetime.combine(data_fim, time.max))
+            start_date = timezone.make_aware(datetime.combine(data_inicio, time.min))
+            end_date = timezone.make_aware(datetime.combine(data_fim, time.max))
             
             clientes = Cliente.objects.filter(
-                data_criacao__range=[start_datetime, end_datetime]
+                data_criacao__gte=start_date,
+                data_criacao__lte=end_date
             )
 
-            if sistema:
-                clientes = clientes.filter(sistema=sistema)
-            if tecnico:
-                clientes = clientes.filter(tecnico=tecnico)
+            if sistema_id:
+                clientes = clientes.filter(sistema=sistema_id)
+            if tecnico_id:
+                clientes = clientes.filter(tecnico=tecnico_id)
             
-            resumo_por_sistema = clientes.values('sistema__nome').annotate(
-                quantidade=Count('id')
-            ).order_by('sistema__nome')
+            # Usa os nomes de variáveis corretos que seu template espera
+            resumo_por_sistema = clientes.values('sistema__nome').annotate(quantidade=Count('id')).order_by('-quantidade')
+            
+            # --- LÓGICA ADICIONADA ---
+            resumo_por_tecnico = clientes.exclude(tecnico__isnull=True).values('tecnico__nome').annotate(quantidade=Count('id')).order_by('-quantidade')
 
             context = {
                 'clientes': clientes.order_by('data_criacao'),
                 'data_inicio': data_inicio,
                 'data_fim': data_fim,
-                'sistema_filtrado': sistema,
-                'tecnico_filtrado': tecnico,
+                # Usa os nomes de variáveis corretos que seu template espera
+                'sistema_filtrado': Sistema.objects.filter(pk=sistema_id).first() if sistema_id else None,
+                'tecnico_filtrado': Tecnico.objects.filter(pk=tecnico_id).first() if tecnico_id else None,
                 'data_geracao': timezone.now(),
                 'resumo_por_sistema': resumo_por_sistema,
+                'resumo_por_tecnico': resumo_por_tecnico, # Adiciona os novos dados ao contexto
             }
             
             pdf = render_to_pdf('contratos/relatorio/pdf_template.html', context)
             if pdf:
                 response = HttpResponse(pdf, content_type='application/pdf')
-                filename = f"relatorio_clientes_{data_inicio.strftime('%Y%m%d')}_{data_fim.strftime('%Y%m%d')}.pdf"
-                response['Content-Disposition'] = f'attachment; filename="{filename}"'
+                filename = f"relatorio_clientes_{timezone.now().strftime('%Y%m%d')}.pdf"
+                response['Content-Disposition'] = f'inline; filename="{filename}"'
                 return response
-            return HttpResponse("Erro ao gerar o PDF.", status=500)
+            
+            messages.error(request, "Ocorreu um erro ao gerar o PDF.")
+            return redirect('relatorio_contratos')
     else:
-        today = timezone.now().date()
-        start_of_month = today.replace(day=1)
-        _, last_day_of_month = calendar.monthrange(today.year, today.month)
-        end_of_month = today.replace(day=last_day_of_month)
-        
-        form = RelatorioContratosForm(initial={
-            'data_inicio': start_of_month,
-            'data_fim': end_of_month
-        })
+        form = RelatorioContratosForm()
 
-    # A CORREÇÃO FOI FEITA NA LINHA ABAIXO
     return render(request, 'contratos/relatorio/form.html', {'form': form})
 
 @login_required
 def renovacao_list(request):
-    # Obtém os parâmetros de filtro da URL
+    # Parâmetros de filtro
     cnpj = request.GET.get('cnpj')
     sistema_id = request.GET.get('sistema')
     tecnico_id = request.GET.get('tecnico')
@@ -343,18 +342,15 @@ def renovacao_list(request):
     mostrar_inativos = request.GET.get('mostrar_inativos')
     mostrar_bloqueados = request.GET.get('mostrar_bloqueados')
 
-    # ---- LÓGICA DE FILTRO CORRIGIDA ----
-    # Começa com todos os clientes. A filtragem de ativos/inativos é tratada abaixo.
-    clientes = Cliente.objects.all()
+    # --- MUDANÇA AQUI: Adicionamos o prefetch_related para otimização ---
+    clientes = Cliente.objects.all().prefetch_related('historico_renovacoes')
 
-    # Filtra por inativos: se a caixa estiver marcada, mostra SÓ os inativos.
-    # Senão, mostra SÓ os ativos (comportamento padrão).
+    # Lógica de filtro (permanece a mesma)
     if mostrar_inativos:
         clientes = clientes.filter(ativo=False)
     else:
         clientes = clientes.filter(ativo=True)
 
-    # Aplica os outros filtros sobre o resultado anterior
     if cnpj:
         clientes = clientes.filter(cnpj__icontains=cnpj)
     if sistema_id:
@@ -366,10 +362,8 @@ def renovacao_list(request):
     if mostrar_bloqueados:
         clientes = clientes.filter(bloqueado=True)
     
-    # Ordena o resultado final
     clientes = clientes.order_by('empresa')
     
-    # Prepara a lista de IDs para a funcionalidade "Marcar Todos"
     all_client_ids = list(clientes.values_list('pk', flat=True))
     all_client_ids_str = ','.join(map(str, all_client_ids))
     
@@ -385,13 +379,11 @@ def renovacao_list(request):
 
 @login_required
 def renovar_contratos(request):
-    # Trata o envio do formulário final com a porcentagem e os meses.
     if request.method == 'POST' and 'meses_a_adicionar' in request.POST:
         form = RenovacaoForm(request.POST)
         if form.is_valid():
             cliente_ids_str = form.cleaned_data['cliente_ids']
             cliente_ids = cliente_ids_str.split(',')
-            # --- LÓGICA DE DATA ATUALIZADA ---
             meses_a_adicionar = form.cleaned_data['meses_a_adicionar']
             porcentagem_reajuste = form.cleaned_data['porcentagem_reajuste']
 
@@ -402,19 +394,38 @@ def renovar_contratos(request):
                 try:
                     cliente = Cliente.objects.get(pk=int(cliente_id))
                     
-                    # Aplica o reajuste de valor
+                    # --- INÍCIO DO BLOCO DE CAPTURA DE DADOS ANTIGOS ---
+                    validade_antiga = cliente.validade
+                    valor_antigo = cliente.valor_mensal if cliente.tipo_cobranca == 'M' else cliente.valor_anual
+                    # --- FIM DO BLOCO DE CAPTURA ---
+
                     fator_reajuste = Decimal(1) + (Decimal(porcentagem_reajuste) / Decimal(100))
+                    
+                    novo_valor_calculado = None
                     if cliente.valor_mensal:
                         cliente.valor_mensal *= fator_reajuste
+                        novo_valor_calculado = cliente.valor_mensal
                     if cliente.valor_anual:
                         cliente.valor_anual *= fator_reajuste
+                        novo_valor_calculado = cliente.valor_anual
 
-                    # --- CÁLCULO INDIVIDUAL DA NOVA VALIDADE ---
-                    # Pega a validade atual e soma os meses informados
-                    nova_validade = cliente.validade + relativedelta(months=meses_a_adicionar)
-                    cliente.validade = nova_validade
+                    nova_validade_calculada = cliente.validade + relativedelta(months=meses_a_adicionar)
+                    cliente.validade = nova_validade_calculada
                     
-                    cliente.save()
+                    cliente.save() # Salva as alterações no cliente
+
+                    # --- INÍCIO DO BLOCO DE CRIAÇÃO DO HISTÓRICO ---
+                    HistoricoRenovacao.objects.create(
+                        cliente=cliente,
+                        validade_anterior=validade_antiga,
+                        nova_validade=nova_validade_calculada,
+                        valor_anterior=valor_antigo,
+                        porcentagem_reajuste=porcentagem_reajuste,
+                        novo_valor=novo_valor_calculado,
+                        usuario_responsavel=request.user
+                    )
+                    # --- FIM DO BLOCO DE CRIAÇÃO ---
+
                     clientes_atualizados.append(cliente.empresa)
                 except Cliente.DoesNotExist:
                     clientes_com_erro.append(cliente_id)
@@ -426,7 +437,7 @@ def renovar_contratos(request):
             
             return redirect('renovacao_list')
         
-        else:
+        else: # O resto da função continua igual...
             cliente_ids_str = request.POST.get('cliente_ids', '')
             cliente_ids = cliente_ids_str.split(',') if cliente_ids_str else []
             clientes_selecionados = Cliente.objects.filter(pk__in=cliente_ids)
@@ -437,7 +448,6 @@ def renovar_contratos(request):
             }
             return render(request, 'contratos/renovacao_form.html', context)
 
-    # Trata o envio da lista de clientes selecionados da página anterior.
     elif request.method == 'POST':
         cliente_ids = request.POST.getlist('cliente_ids')
         if not cliente_ids:

@@ -132,7 +132,7 @@
 
 {% for cliente in page_obj %}
 <div class="modal fade" id="modalCliente{{ cliente.pk }}" tabindex="-1" aria-labelledby="modalClienteLabel{{ cliente.pk }}" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"> {# Adicionado modal-dialog-scrollable #}
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="modalClienteLabel{{ cliente.pk }}">Ficha Cadastral: {{ cliente.empresa }}</h5>
@@ -150,57 +150,58 @@
                             <span class="badge bg-success">Ativo</span>
                         {% endif %}
                     </dd>
-
-                    <dt class="col-sm-3">Empresa</dt>
-                    <dd class="col-sm-9">{{ cliente.empresa }}</dd>
-
-                    <dt class="col-sm-3">CNPJ</dt>
-                    <dd class="col-sm-9">{{ cliente.cnpj }}</dd>
-                    
-                    <dt class="col-sm-3">Validade do Contrato</dt>
-                    <dd class="col-sm-9">{{ cliente.validade|date:"d/m/Y" }} {% if cliente.validade < today %}<span class="badge bg-danger">Vencido</span>{% endif %}</dd>
-                    
-                    <dt class="col-sm-3">Sistema</dt>
-                    <dd class="col-sm-9">{{ cliente.sistema.nome }}</dd>
-
-                    <dt class="col-sm-3">Técnico Responsável</dt>
-                    <dd class="col-sm-9">{{ cliente.tecnico.nome|default:"Não informado" }}</dd>
-
-                    <dt class="col-sm-3">Descrição</dt>
-                    <dd class="col-sm-9">{{ cliente.descricao|default:"Não informada"|linebreaksbr }}</dd>
-
+                    <dt class="col-sm-3">Empresa</dt><dd class="col-sm-9">{{ cliente.empresa }}</dd>
+                    <dt class="col-sm-3">CNPJ</dt><dd class="col-sm-9">{{ cliente.cnpj }}</dd>
+                    <dt class="col-sm-3">Validade do Contrato</dt><dd class="col-sm-9">{{ cliente.validade|date:"d/m/Y" }} {% if cliente.validade < today %}<span class="badge bg-danger">Vencido</span>{% endif %}</dd>
+                    <dt class="col-sm-3">Sistema</dt><dd class="col-sm-9">{{ cliente.sistema.nome }}</dd>
+                    <dt class="col-sm-3">Técnico Responsável</dt><dd class="col-sm-9">{{ cliente.tecnico.nome|default:"Não informado" }}</dd>
+                    <dt class="col-sm-3">Descrição</dt><dd class="col-sm-9">{{ cliente.descricao|default:"Não informada"|linebreaksbr }}</dd>
                     <dt class="col-sm-3">Anexo</dt>
                     <dd class="col-sm-9">
                         {% if cliente.pdf_anexo %}
-                            <a href="{{ cliente.pdf_anexo.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-file-pdf"></i> Ver PDF Anexado
-                            </a>
+                            <a href="{{ cliente.pdf_anexo.url }}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="fas fa-file-pdf"></i> Ver PDF Anexado</a>
                         {% else %}
                             Nenhum arquivo anexado.
                         {% endif %}
                     </dd>
                 </dl>
                 <hr>
-                <h6>Detalhes da Cobrança</h6>
+                <h6>Detalhes da Cobrança Atual</h6>
                 <dl class="row">
                     {% if cliente.tipo_cobranca == 'M' %}
-                        <dt class="col-sm-3">Tipo</dt>
-                        <dd class="col-sm-9">Mensal</dd>
-                        <dt class="col-sm-3">Valor Mensal</dt>
-                        <dd class="col-sm-9">R$ {{ cliente.valor_mensal|default:"0,00" }}</dd>
-                        <dt class="col-sm-3">Meses</dt>
-                        <dd class="col-sm-9">{{ cliente.meses_contrato }}</dd>
-                        <dt class="col-sm-3">Valor Total</dt>
-                        <dd class="col-sm-9 fw-bold">R$ {{ cliente.valor_total_calculado|default:"0,00" }}</dd>
+                        <dt class="col-sm-3">Tipo</dt><dd class="col-sm-9">Mensal</dd>
+                        <dt class="col-sm-3">Valor Mensal</dt><dd class="col-sm-9">R$ {{ cliente.valor_mensal|default:"0,00" }}</dd>
+                        <dt class="col-sm-3">Meses</dt><dd class="col-sm-9">{{ cliente.meses_contrato }}</dd>
+                        <dt class="col-sm-3">Valor Total</dt><dd class="col-sm-9 fw-bold">R$ {{ cliente.valor_total_calculado|default:"0,00" }}</dd>
                     {% elif cliente.tipo_cobranca == 'A' %}
-                        <dt class="col-sm-3">Tipo</dt>
-                        <dd class="col-sm-9">Anual</dd>
-                        <dt class="col-sm-3">Valor Anual</dt>
-                        <dd class="col-sm-9 fw-bold">R$ {{ cliente.valor_anual|default:"0,00" }}</dd>
+                        <dt class="col-sm-3">Tipo</dt><dd class="col-sm-9">Anual</dd>
+                        <dt class="col-sm-3">Valor Anual</dt><dd class="col-sm-9 fw-bold">R$ {{ cliente.valor_anual|default:"0,00" }}</dd>
                     {% else %}
                         <dt class="col-sm-12">Nenhuma informação de cobrança cadastrada.</dt>
                     {% endif %}
                 </dl>
+                
+                {#--- INÍCIO DA SEÇÃO DE HISTÓRICO DE RENOVAÇÕES ---#}
+                {% if cliente.historico_renovacoes.all %}
+                <hr>
+                <h6>Histórico de Renovações</h6>
+                <ul class="list-group list-group-flush">
+                    {% for historico in cliente.historico_renovacoes.all %}
+                        <li class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Renovação em {{ historico.data_renovacao|date:"d/m/Y" }}</h6>
+                                <small class="text-muted">Por: {{ historico.usuario_responsavel.username|default:'N/A' }}</small>
+                            </div>
+                            <p class="mb-1">
+                                Valor foi de <strong>R$ {{ historico.valor_anterior|default:'0,00' }}</strong> para <strong>R$ {{ historico.novo_valor|default:'0,00' }}</strong> (+{{ historico.porcentagem_reajuste }}%).
+                            </p>
+                            <small class="text-muted">Validade alterada de {{ historico.validade_anterior|date:"d/m/Y" }} para {{ historico.nova_validade|date:"d/m/Y" }}.</small>
+                        </li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                {#--- FIM DA SEÇÃO DE HISTÓRICO ---#}
+
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
@@ -210,6 +211,7 @@
 </div>
 {% endfor %}
 
+{# O modal de estatísticas e o script JS continuam os mesmos #}
 <div class="modal fade" id="modalEstatisticas" tabindex="-1" aria-labelledby="modalEstatisticasLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -222,20 +224,16 @@
             <div class="modal-body">
                 <ul class="list-group">
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        Total de Clientes Ativos
-                        <span class="badge bg-success rounded-pill">{{ total_ativos }}</span>
+                        Total de Clientes Ativos<span class="badge bg-success rounded-pill">{{ total_ativos }}</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        Total de Clientes Inativos
-                        <span class="badge bg-secondary rounded-pill">{{ total_inativos }}</span>
+                        Total de Clientes Inativos<span class="badge bg-secondary rounded-pill">{{ total_inativos }}</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        Clientes Ativos Bloqueados
-                        <span class="badge bg-danger rounded-pill">{{ total_bloqueados }}</span>
+                        Clientes Ativos Bloqueados<span class="badge bg-danger rounded-pill">{{ total_bloqueados }}</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        Clientes Ativos Vencidos
-                        <span class="badge bg-warning text-dark rounded-pill">{{ total_vencidos }}</span>
+                        Clientes Ativos Vencidos<span class="badge bg-warning text-dark rounded-pill">{{ total_vencidos }}</span>
                     </li>
                 </ul>
             </div>
@@ -245,7 +243,6 @@
         </div>
     </div>
 </div>
-
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
