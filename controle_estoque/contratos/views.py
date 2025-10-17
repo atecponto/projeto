@@ -285,38 +285,68 @@ def relatorio_contratos(request):
         if form.is_valid():
             data_inicio = form.cleaned_data['data_inicio']
             data_fim = form.cleaned_data['data_fim']
-            sistema_id = form.cleaned_data['sistema']
-            tecnico_id = form.cleaned_data['tecnico']
+            sistema_obj = form.cleaned_data['sistema']
+            tecnico_obj = form.cleaned_data['tecnico']
+            status = form.cleaned_data['status']
 
             start_date = timezone.make_aware(datetime.combine(data_inicio, time.min))
             end_date = timezone.make_aware(datetime.combine(data_fim, time.max))
             
+            # Filtro base por data de cadastro
             clientes = Cliente.objects.filter(
                 data_criacao__gte=start_date,
                 data_criacao__lte=end_date
             )
 
-            if sistema_id:
-                clientes = clientes.filter(sistema=sistema_id)
-            if tecnico_id:
-                clientes = clientes.filter(tecnico=tecnico_id)
+            # Aplica filtros de sistema e técnico
+            if sistema_obj:
+                clientes = clientes.filter(sistema=sistema_obj)
+            if tecnico_obj:
+                clientes = clientes.filter(tecnico=tecnico_obj)
             
-            # Usa os nomes de variáveis corretos que seu template espera
+            # --- INÍCIO DA NOVA LÓGICA ---
+            status_counts = None
+            # Se o filtro for "Todos os Status", calculamos as contagens
+            if not status:
+                # Fazemos uma cópia do queryset filtrado para calcular os totais
+                clientes_filtrados = clientes
+                
+                # A contagem de vencidos precisa ser feita em cima dos clientes que estão ativos e não bloqueados
+                vencidos_count = clientes_filtrados.filter(ativo=True, bloqueado=False, validade__lt=date.today()).count()
+                
+                status_counts = {
+                    'ativos': clientes_filtrados.filter(ativo=True, bloqueado=False, validade__gte=date.today()).count(),
+                    'inativos': clientes_filtrados.filter(ativo=False).count(),
+                    'bloqueados': clientes_filtrados.filter(bloqueado=True).count(),
+                    'vencidos': vencidos_count,
+                }
+            # Se um status específico foi selecionado, aplicamos o filtro
+            else:
+                if status == 'ativos':
+                    clientes = clientes.filter(ativo=True)
+                elif status == 'inativos':
+                    clientes = clientes.filter(ativo=False)
+                elif status == 'bloqueados':
+                    clientes = clientes.filter(bloqueado=True)
+                elif status == 'vencidos':
+                    clientes = clientes.filter(validade__lt=date.today())
+            # --- FIM DA NOVA LÓGICA ---
+
             resumo_por_sistema = clientes.values('sistema__nome').annotate(quantidade=Count('id')).order_by('-quantidade')
-            
-            # --- LÓGICA ADICIONADA ---
             resumo_por_tecnico = clientes.exclude(tecnico__isnull=True).values('tecnico__nome').annotate(quantidade=Count('id')).order_by('-quantidade')
 
             context = {
                 'clientes': clientes.order_by('data_criacao'),
                 'data_inicio': data_inicio,
                 'data_fim': data_fim,
-                # Usa os nomes de variáveis corretos que seu template espera
-                'sistema_filtrado': Sistema.objects.filter(pk=sistema_id).first() if sistema_id else None,
-                'tecnico_filtrado': Tecnico.objects.filter(pk=tecnico_id).first() if tecnico_id else None,
+                'sistema_filtrado': sistema_obj,
+                'tecnico_filtrado': tecnico_obj,
+                'status_filtrado': dict(form.fields['status'].choices).get(status),
                 'data_geracao': timezone.now(),
                 'resumo_por_sistema': resumo_por_sistema,
-                'resumo_por_tecnico': resumo_por_tecnico, # Adiciona os novos dados ao contexto
+                'resumo_por_tecnico': resumo_por_tecnico,
+                'today': date.today(),
+                'status_counts': status_counts, # Adiciona as contagens ao contexto
             }
             
             pdf = render_to_pdf('contratos/relatorio/pdf_template.html', context)

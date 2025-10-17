@@ -1,6 +1,6 @@
 {% extends 'contratos/base_contrato.html' %}
 
-{% block title %}Relatório de Contratos{% endblock %}
+{% block title %}Gerar Relatório de Contratos{% endblock %}
 
 {% block content %}
 <div class="card shadow-sm">
@@ -10,37 +10,38 @@
     <div class="card-body">
         <form method="post">
             {% csrf_token %}
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    {{ form.data_inicio.label_tag }}
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="{{ form.data_inicio.id_for_label }}" class="form-label">{{ form.data_inicio.label }}</label>
                     {{ form.data_inicio }}
                 </div>
-                <div class="col-md-6 mb-3">
-                    {{ form.data_fim.label_tag }}
+                <div class="col-md-6">
+                    <label for="{{ form.data_fim.id_for_label }}" class="form-label">{{ form.data_fim.label }}</label>
                     {{ form.data_fim }}
                 </div>
-                <div class="col-md-6 mb-3">
-                    {{ form.sistema.label_tag }}
-                    <select name="sistema" class="form-select">
-                        <option value="">Todos os Sistemas</option>
-                        {% for s in form.sistema.field.queryset %}
-                            <option value="{{ s.id }}">{{ s.nome }}</option>
-                        {% endfor %}
-                    </select>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="{{ form.sistema.id_for_label }}" class="form-label">{{ form.sistema.label }}</label>
+                    {{ form.sistema }}
                 </div>
-                <div class="col-md-6 mb-3">
-                    {{ form.tecnico.label_tag }}
-                    <select name="tecnico" class="form-select">
-                        <option value="">Todos os Técnicos</option>
-                        {% for t in form.tecnico.field.queryset %}
-                            <option value="{{ t.id }}">{{ t.nome }}</option>
-                        {% endfor %}
-                    </select>
+                <div class="col-md-6">
+                    <label for="{{ form.status.id_for_label }}" class="form-label">{{ form.status.label }}</label>
+                    {{ form.status }}
+                </div>
+                </div>
+
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <label for="{{ form.tecnico.id_for_label }}" class="form-label">{{ form.tecnico.label }}</label>
+                    {{ form.tecnico }}
                 </div>
             </div>
-            <div class="mt-4">
+
+            <div class="d-flex justify-content-end">
                 <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-file-pdf"></i> Gerar PDF
+                    <i class="fas fa-file-pdf me-2"></i>Gerar PDF
                 </button>
             </div>
         </form>

@@ -69,23 +69,40 @@ class ClienteForm(forms.ModelForm):
 # --- NOVO FORMULÁRIO DE RELATÓRIO ADICIONADO AQUI ---
 class RelatorioContratosForm(forms.Form):
     data_inicio = forms.DateField(
-        label="Data de Início",
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+        label='Data de Início',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        required=True
     )
     data_fim = forms.DateField(
-        label="Data de Fim",
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
+        label='Data de Fim',
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        required=True
     )
     sistema = forms.ModelChoiceField(
         queryset=Sistema.objects.all(),
         required=False,
-        label="Filtrar por Sistema",
+        label='Filtrar por Sistema',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+    # --- INÍCIO DA NOVA SEÇÃO ---
+    STATUS_CHOICES = [
+        ('', 'Todos os Status'),
+        ('ativos', 'Apenas Ativos'),
+        ('inativos', 'Apenas Inativos'),
+        ('bloqueados', 'Apenas Bloqueados'),
+        ('vencidos', 'Apenas Vencidos'),
+    ]
+    status = forms.ChoiceField(
+        choices=STATUS_CHOICES,
+        required=False,
+        label='Filtrar por Status',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    # --- FIM DA NOVA SEÇÃO ---
     tecnico = forms.ModelChoiceField(
         queryset=Tecnico.objects.all(),
         required=False,
-        label="Filtrar por Técnico",
+        label='Filtrar por Técnico',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
