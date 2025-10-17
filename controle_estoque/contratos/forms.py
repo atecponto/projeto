@@ -93,17 +93,20 @@ class RenovacaoForm(forms.Form):
     porcentagem_reajuste = forms.DecimalField(
         label='Porcentagem de Reajuste (%)',
         required=True,
+        # --- INÍCIO DAS LINHAS ADICIONADAS/MODIFICADAS ---
+        max_digits=5,      # Define o total de dígitos permitidos (ex: 999.99)
         decimal_places=2,
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 2.50'})
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Ex: 2.50'}),
+        error_messages={   # Define a mensagem de erro personalizada
+            'max_digits': 'Certifique-se de que não tenha mais de 5 dígitos no total.'
+        }
+        # --- FIM DAS LINHAS ADICIONADAS/MODIFICADAS ---
     )
-    # --- MUDANÇA APLICADA AQUI ---
-    # Trocamos o DateField por um IntegerField
     meses_a_adicionar = forms.IntegerField(
         label='Adicionar Meses ao Contrato',
         required=True,
         min_value=1,
-        initial=12, # Sugere 12 meses (1 ano) como padrão
+        initial=12, 
         widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
-    # O campo oculto continua igual
     cliente_ids = forms.CharField(widget=forms.HiddenInput())

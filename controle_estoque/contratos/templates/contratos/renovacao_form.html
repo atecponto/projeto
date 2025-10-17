@@ -45,7 +45,13 @@
                 <div class="col-md-6 mb-3">
                     <label for="{{ form.porcentagem_reajuste.id_for_label }}" class="form-label"><strong>{{ form.porcentagem_reajuste.label }}</strong></label>
                     {{ form.porcentagem_reajuste }}
-                </div>
+
+                    {% if form.porcentagem_reajuste.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.porcentagem_reajuste.errors|first }}
+                        </div>
+                    {% endif %}
+                    </div>
                 <div class="col-md-6 mb-3">
                     <label for="{{ form.meses_a_adicionar.id_for_label }}" class="form-label"><strong>{{ form.meses_a_adicionar.label }}</strong></label>
                     {{ form.meses_a_adicionar }}
