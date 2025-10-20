@@ -530,3 +530,54 @@ def excluir_historico_renovacao(request, pk):
     
     # Redireciona de volta para a lista de clientes
     return redirect('listar_clientes')
+
+@login_required
+def gerar_pdf_renovacao(request):
+    # Reutiliza o mesmo formulário e lógica de filtro da tela de renovação
+    filter_form = RenovacaoListFilterForm(request.GET or None)
+    
+    clientes = Cliente.objects.all().prefetch_related('historico_renovacoes')
+
+    if filter_form.is_valid() and request.GET:
+        # ... (toda a sua lógica de filtro, que já está correta, permanece aqui) ...
+        cnpj = filter_form.cleaned_data.get('cnpj')
+        sistema = filter_form.cleaned_data.get('sistema')
+        tecnico = filter_form.cleaned_data.get('tecnico')
+        mostrar_inativos = filter_form.cleaned_data.get('mostrar_inativos')
+        if mostrar_inativos:
+            clientes = clientes.filter(ativo=False)
+        else:
+            clientes = clientes.filter(ativo=True)
+        if cnpj: clientes = clientes.filter(cnpj__icontains=cnpj)
+        if sistema: clientes = clientes.filter(sistema=sistema)
+        if tecnico: clientes = clientes.filter(tecnico=tecnico)
+        if filter_form.cleaned_data.get('mostrar_bloqueados'): clientes = clientes.filter(bloqueado=True)
+        if filter_form.cleaned_data.get('mostrar_vencidos'): clientes = clientes.filter(validade__lt=date.today())
+        if filter_form.cleaned_data.get('filtrar_por_data'):
+            data_inicio = filter_form.cleaned_data.get('data_inicio')
+            data_fim = filter_form.cleaned_data.get('data_fim')
+            if data_inicio and data_fim:
+                clientes = clientes.filter(validade__gte=data_inicio, validade__lte=data_fim)
+    else:
+        clientes = clientes.filter(ativo=True)
+
+    clientes = clientes.order_by('empresa')
+
+    context = {
+        'clientes': clientes,
+        'today': date.today(),
+        'data_geracao': timezone.now(),
+        'filtros_aplicados': request.GET,
+    }
+    
+    # --- CORREÇÃO DO CAMINHO APLICADA AQUI ---
+    pdf = render_to_pdf('contratos/renovacao/renovacao_pdf.html', context)
+    
+    if pdf:
+        response = HttpResponse(pdf, content_type='application/pdf')
+        filename = f"relatorio_renovacao_{timezone.now().strftime('%Y%m%d')}.pdf"
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        return response
+    
+    messages.error(request, "Ocorreu um erro ao gerar o relatório PDF.")
+    return redirect('renovacao_list')

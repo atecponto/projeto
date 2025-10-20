@@ -66,6 +66,7 @@
                 </div>
                 {% endif %}
             </div>
+
             <div class="col-md-5 d-flex align-items-end" style="padding-bottom: 8px;">
                  <div class="form-check me-3">
                     {{ filter_form.mostrar_vencidos }}
@@ -87,8 +88,11 @@
                 </div>
             </div>
 
-            <div class="col-md-2 align-self-end">
+            <div class="col-md-2 align-self-end d-grid gap-2 d-md-flex">
                 <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                <button type="button" id="btn-gerar-pdf" class="btn btn-secondary" title="Gerar PDF com os filtros atuais">
+                    <i class="fas fa-file-pdf"></i>
+                </button>
             </div>
         </form>
         
@@ -322,8 +326,7 @@
             });
         }
 
-        // --- NOVO SCRIPT PARA HABILITAR/DESABILITAR DATAS ---
-        // Usa os IDs corretos dos campos vindos do formulário Django
+        // SCRIPT PARA HABILITAR/DESABILITAR DATAS
         const chkFiltrarData = document.getElementById('{{ filter_form.filtrar_por_data.id_for_label }}');
         const dataInicioInput = document.getElementById('{{ filter_form.data_inicio.id_for_label }}');
         const dataFimInput = document.getElementById('{{ filter_form.data_fim.id_for_label }}');
@@ -332,22 +335,26 @@
             const habilitar = chkFiltrarData.checked;
             dataInicioInput.disabled = !habilitar;
             dataFimInput.disabled = !habilitar;
-            // Opcional: Limpar datas quando desabilitar
             if (!habilitar) {
-                 dataInicioInput.value = ''; // Limpa se você descomentar
-                 dataFimInput.value = ''; // Limpa se você descomentar
+                 dataInicioInput.value = '';
+                 dataFimInput.value = '';
             }
         }
 
-        // Garante que os elementos existem antes de adicionar listeners
         if (chkFiltrarData && dataInicioInput && dataFimInput) {
-            // Executa na carga da página
             toggleDateInputs(); 
-            // Adiciona o listener para mudanças no checkbox
             chkFiltrarData.addEventListener('change', toggleDateInputs);
         }
-        // --- FIM DO NOVO SCRIPT ---
 
+        // NOVO SCRIPT PARA GERAR PDF
+        const btnGerarPDF = document.getElementById('btn-gerar-pdf');
+        if (btnGerarPDF) {
+            btnGerarPDF.addEventListener('click', function() {
+                const queryString = window.location.search;
+                const pdfUrl = "{% url 'gerar_pdf_renovacao' %}" + queryString;
+                window.open(pdfUrl, '_blank');
+            });
+        }
     });
 </script>
 {% endblock %}
