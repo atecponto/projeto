@@ -6,6 +6,9 @@
 <style>
     .table-container-sticky { max-height: 65vh; overflow-y: auto; position: relative; }
     .table-container-sticky thead th { position: -webkit-sticky; position: sticky; top: 0; z-index: 2; background-color: #ffffff; border-bottom-width: 2px; }
+    /* Estilo para alinhar o checkbox do período com as datas */
+    .periodo-filter-group { display: flex; align-items: flex-end; gap: 0.5rem; }
+    .periodo-filter-group .form-check { padding-bottom: 0.5rem; /* Ajuste fino para alinhar */}
 </style>
 {% endblock %}
 
@@ -17,49 +20,74 @@
     <div class="card-body">
         
         <form method="get" id="filterForm" class="row g-3 mb-4 p-3 border rounded bg-light align-items-end">
+            
+            {% if filter_form.non_field_errors %}
+                <div class="col-12 alert alert-danger py-2">
+                    {% for error in filter_form.non_field_errors %}
+                        {{ error }}<br>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
             <div class="col-md-3">
-                <label for="cnpj" class="form-label">Buscar por CNPJ</label>
-                <input type="text" name="cnpj" id="buscaCnpj" class="form-control" placeholder="Digite para buscar..." value="{{ request.GET.cnpj }}">
+                <label for="{{ filter_form.cnpj.id_for_label }}" class="form-label">Buscar por CNPJ</label>
+                {{ filter_form.cnpj }}
             </div>
             <div class="col-md-2">
-                <label for="sistema" class="form-label">Por Sistema</label>
-                <select name="sistema" id="sistema" class="form-select">
-                    <option value="">Todos</option>
-                    {% for s in sistemas %}
-                        <option value="{{ s.id }}" {% if request.GET.sistema == s.id|stringformat:"s" %}selected{% endif %}>{{ s.nome }}</option>
-                    {% endfor %}
-                </select>
+                <label for="{{ filter_form.sistema.id_for_label }}" class="form-label">Por Sistema</label>
+                {{ filter_form.sistema }}
             </div>
             <div class="col-md-2">
-                <label for="tecnico" class="form-label">Por Técnico</label>
-                <select name="tecnico" id="tecnico" class="form-select">
-                    <option value="">Todos</option>
-                    {% for t in tecnicos %}
-                        <option value="{{ t.id }}" {% if request.GET.tecnico == t.id|stringformat:"s" %}selected{% endif %}>{{ t.nome }}</option>
-                    {% endfor %}
-                </select>
+                <label for="{{ filter_form.tecnico.id_for_label }}" class="form-label">Por Técnico</label>
+                {{ filter_form.tecnico }}
             </div>
-            <div class="col-md-3 d-flex align-items-end" style="padding-bottom: 8px;">
-                <div class="form-check me-3">
-                    <input class="form-check-input" type="checkbox" name="mostrar_vencidos" id="mostrar_vencidos" {% if request.GET.mostrar_vencidos %}checked{% endif %}>
-                    <label class="form-check-label" for="mostrar_vencidos" title="Mostrar apenas vencidos">
+            
+            <div class="col-md-5">
+                <div class="periodo-filter-group">
+                    <div class="form-check">
+                        {{ filter_form.filtrar_por_data }}
+                        <label class="form-check-label" for="{{ filter_form.filtrar_por_data.id_for_label }}">
+                           {{ filter_form.filtrar_por_data.label }}
+                        </label>
+                    </div>
+                    <div class="flex-grow-1">
+                        <label for="{{ filter_form.data_inicio.id_for_label }}" class="form-label visually-hidden">Data Início</label>
+                        {{ filter_form.data_inicio }}
+                    </div>
+                    <div class="flex-grow-1">
+                        <label for="{{ filter_form.data_fim.id_for_label }}" class="form-label visually-hidden">Data Fim</label>
+                        {{ filter_form.data_fim }}
+                    </div>
+                </div>
+                 {% if filter_form.data_inicio.errors or filter_form.data_fim.errors %}
+                <div class="text-danger small mt-1">
+                    {% for error in filter_form.data_inicio.errors %}{{ error }} {% endfor %}
+                    {% for error in filter_form.data_fim.errors %}{{ error }} {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+            <div class="col-md-5 d-flex align-items-end" style="padding-bottom: 8px;">
+                 <div class="form-check me-3">
+                    {{ filter_form.mostrar_vencidos }}
+                    <label class="form-check-label" for="{{ filter_form.mostrar_vencidos.id_for_label }}" title="Mostrar apenas vencidos">
                         <i class="fas fa-calendar-times"></i> Vencidos
                     </label>
                 </div>
                 <div class="form-check me-3">
-                    <input class="form-check-input" type="checkbox" name="mostrar_inativos" id="mostrar_inativos" {% if request.GET.mostrar_inativos %}checked{% endif %}>
-                    <label class="form-check-label" for="mostrar_inativos" title="Mostrar apenas inativos">
+                     {{ filter_form.mostrar_inativos }}
+                    <label class="form-check-label" for="{{ filter_form.mostrar_inativos.id_for_label }}" title="Mostrar apenas inativos">
                         <i class="fas fa-times-circle"></i> Inativos
                     </label>
                 </div>
                 <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="mostrar_bloqueados" id="mostrar_bloqueados" {% if request.GET.mostrar_bloqueados %}checked{% endif %}>
-                    <label class="form-check-label" for="mostrar_bloqueados" title="Mostrar apenas bloqueados">
-                        <i class="fas fa-lock"></i>
+                    {{ filter_form.mostrar_bloqueados }}
+                    <label class="form-check-label" for="{{ filter_form.mostrar_bloqueados.id_for_label }}" title="Mostrar apenas bloqueados">
+                        <i class="fas fa-lock"></i> Bloqueados
                     </label>
                 </div>
             </div>
-            <div class="col-md-2">
+
+            <div class="col-md-2 align-self-end">
                 <button type="submit" class="btn btn-primary w-100">Filtrar</button>
             </div>
         </form>
@@ -72,6 +100,8 @@
                 </div>
             {% endfor %}
         {% endif %}
+
+        <p><strong>{{ total_clientes_filtrados }}</strong> cliente(s) encontrado(s).</p>
 
         <form method="post" id="renewalForm" action="{% url 'renovar_contratos' %}">
             {% csrf_token %}
@@ -245,7 +275,8 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const buscaInput = document.getElementById('buscaCnpj');
+        // Usa o ID correto do campo CNPJ vindo do formulário Django
+        const buscaInput = document.getElementById('{{ filter_form.cnpj.id_for_label }}'); 
         const tabelaBody = document.getElementById('tabelaClientes');
         const linhasTabela = tabelaBody.getElementsByTagName('tr');
 
@@ -290,6 +321,33 @@
                 deleteForm.setAttribute('action', deleteUrl);
             });
         }
+
+        // --- NOVO SCRIPT PARA HABILITAR/DESABILITAR DATAS ---
+        // Usa os IDs corretos dos campos vindos do formulário Django
+        const chkFiltrarData = document.getElementById('{{ filter_form.filtrar_por_data.id_for_label }}');
+        const dataInicioInput = document.getElementById('{{ filter_form.data_inicio.id_for_label }}');
+        const dataFimInput = document.getElementById('{{ filter_form.data_fim.id_for_label }}');
+
+        function toggleDateInputs() {
+            const habilitar = chkFiltrarData.checked;
+            dataInicioInput.disabled = !habilitar;
+            dataFimInput.disabled = !habilitar;
+            // Opcional: Limpar datas quando desabilitar
+            if (!habilitar) {
+                 dataInicioInput.value = ''; // Limpa se você descomentar
+                 dataFimInput.value = ''; // Limpa se você descomentar
+            }
+        }
+
+        // Garante que os elementos existem antes de adicionar listeners
+        if (chkFiltrarData && dataInicioInput && dataFimInput) {
+            // Executa na carga da página
+            toggleDateInputs(); 
+            // Adiciona o listener para mudanças no checkbox
+            chkFiltrarData.addEventListener('change', toggleDateInputs);
+        }
+        // --- FIM DO NOVO SCRIPT ---
+
     });
 </script>
 {% endblock %}

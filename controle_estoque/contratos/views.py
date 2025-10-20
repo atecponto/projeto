@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from .models import Sistema, Tecnico, Cliente, HistoricoRenovacao
-from .forms import SistemaForm, TecnicoForm, ClienteForm, RenovacaoForm, RelatorioContratosForm
+from .forms import SistemaForm, TecnicoForm, ClienteForm, RenovacaoForm, RelatorioContratosForm, RenovacaoListFilterForm
 from django.core.paginator import Paginator
 from datetime import date
 from django.db.models import ProtectedError
@@ -365,34 +365,52 @@ def relatorio_contratos(request):
 
 @login_required
 def renovacao_list(request):
-    # Parâmetros de filtro
-    cnpj = request.GET.get('cnpj')
-    sistema_id = request.GET.get('sistema')
-    tecnico_id = request.GET.get('tecnico')
-    mostrar_vencidos = request.GET.get('mostrar_vencidos')
-    mostrar_inativos = request.GET.get('mostrar_inativos')
-    mostrar_bloqueados = request.GET.get('mostrar_bloqueados')
-
-    # --- MUDANÇA AQUI: Adicionamos o prefetch_related para otimização ---
+    # Usa o novo formulário para processar TODOS os filtros GET
+    filter_form = RenovacaoListFilterForm(request.GET or None)
+    
     clientes = Cliente.objects.all().prefetch_related('historico_renovacoes')
 
-    # Lógica de filtro (permanece a mesma)
-    if mostrar_inativos:
-        clientes = clientes.filter(ativo=False)
-    else:
-        clientes = clientes.filter(ativo=True)
+    # Aplica filtros se o formulário for válido (sempre será no GET, mas boa prática)
+    # E se houver dados (request.GET não está vazio)
+    if filter_form.is_valid() and request.GET:
+        cnpj = filter_form.cleaned_data.get('cnpj')
+        sistema = filter_form.cleaned_data.get('sistema')
+        tecnico = filter_form.cleaned_data.get('tecnico')
+        mostrar_inativos = filter_form.cleaned_data.get('mostrar_inativos')
+        mostrar_bloqueados = filter_form.cleaned_data.get('mostrar_bloqueados')
+        mostrar_vencidos = filter_form.cleaned_data.get('mostrar_vencidos')
+        filtrar_por_data = filter_form.cleaned_data.get('filtrar_por_data')
+        data_inicio = filter_form.cleaned_data.get('data_inicio')
+        data_fim = filter_form.cleaned_data.get('data_fim')
 
-    if cnpj:
-        clientes = clientes.filter(cnpj__icontains=cnpj)
-    if sistema_id:
-        clientes = clientes.filter(sistema_id=sistema_id)
-    if tecnico_id:
-        clientes = clientes.filter(tecnico_id=tecnico_id)
-    if mostrar_vencidos:
-        clientes = clientes.filter(validade__lt=date.today())
-    if mostrar_bloqueados:
-        clientes = clientes.filter(bloqueado=True)
-    
+        # Filtro Ativo/Inativo (lógica existente)
+        if mostrar_inativos:
+            clientes = clientes.filter(ativo=False)
+        else:
+            clientes = clientes.filter(ativo=True) # Padrão é mostrar ativos
+
+        # Filtros restantes
+        if cnpj:
+            clientes = clientes.filter(cnpj__icontains=cnpj)
+        if sistema:
+            clientes = clientes.filter(sistema=sistema)
+        if tecnico:
+            clientes = clientes.filter(tecnico=tecnico)
+        if mostrar_bloqueados:
+            clientes = clientes.filter(bloqueado=True)
+        if mostrar_vencidos:
+            # Garante que só mostre vencidos que ainda estão ativos/não inativos
+            clientes = clientes.filter(validade__lt=date.today()) 
+            
+        # --- NOVO FILTRO DE DATA ---
+        if filtrar_por_data and data_inicio and data_fim:
+            # Ajusta data_fim para incluir o dia inteiro
+            fim_ajustado = datetime.combine(data_fim, time.max)
+            clientes = clientes.filter(data_criacao__gte=data_inicio, data_criacao__lte=fim_ajustado)
+    else:
+         # Comportamento padrão se não houver filtro: mostrar apenas ativos
+         clientes = clientes.filter(ativo=True)
+
     clientes = clientes.order_by('empresa')
     
     all_client_ids = list(clientes.values_list('pk', flat=True))
@@ -400,11 +418,12 @@ def renovacao_list(request):
     
     context = {
         'clientes': clientes, 
-        'sistemas': Sistema.objects.all(),
-        'tecnicos': Tecnico.objects.all(),
+        'sistemas': Sistema.objects.all(), # Ainda necessário para preencher o dropdown
+        'tecnicos': Tecnico.objects.all(),  # Ainda necessário para preencher o dropdown
         'today': date.today(),
         'total_clientes_filtrados': clientes.count(),
         'all_client_ids_str': all_client_ids_str,
+        'filter_form': filter_form, # Passa o formulário completo para o template
     }
     return render(request, 'contratos/renovacao/lista.html', context)
 

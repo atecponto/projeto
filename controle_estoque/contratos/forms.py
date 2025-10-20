@@ -127,3 +127,34 @@ class RenovacaoForm(forms.Form):
         widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
     cliente_ids = forms.CharField(widget=forms.HiddenInput())
+
+class RenovacaoListFilterForm(forms.Form):
+    # Campos de filtro existentes que já estão no seu HTML
+    cnpj = forms.CharField(required=False, widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Digite para buscar...'}))
+    sistema = forms.ModelChoiceField(queryset=Sistema.objects.all(), required=False, empty_label="Todos os Sistemas", widget=forms.Select(attrs={'class': 'form-select'}))
+    tecnico = forms.ModelChoiceField(queryset=Tecnico.objects.all(), required=False, empty_label="Todos os Técnicos", widget=forms.Select(attrs={'class': 'form-select'}))
+    mostrar_vencidos = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    mostrar_inativos = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    mostrar_bloqueados = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+
+    # Novos campos para o filtro de período
+    filtrar_por_data = forms.BooleanField(required=False, label="Período", widget=forms.CheckboxInput(attrs={'class': 'form-check-input'}))
+    data_inicio = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}))
+    data_fim = forms.DateField(required=False, widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}))
+
+    def clean(self):
+        cleaned_data = super().clean()
+        filtrar = cleaned_data.get('filtrar_por_data')
+        inicio = cleaned_data.get('data_inicio')
+        fim = cleaned_data.get('data_fim')
+
+        if filtrar:
+            if not inicio or not fim:
+                raise forms.ValidationError("Se a opção 'Período' estiver marcada, as datas de início e fim são obrigatórias.")
+            if inicio > fim:
+                raise forms.ValidationError("A data de início não pode ser maior que a data de fim.")
+            # Validação de 2 anos (731 dias para incluir anos bissextos)
+            if (fim - inicio).days > 731:
+                raise forms.ValidationError("O período máximo de seleção de data é de 2 anos.")
+        
+        return cleaned_data
