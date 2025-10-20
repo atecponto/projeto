@@ -1,4 +1,4 @@
-{# Em contratos/templates/renovacao/pdf_template.html (NOVO ARQUIVO) #}
+{# Em contratos/templates/renovacao/renovacao_pdf.html #}
 <!DOCTYPE html>
 <html>
 <head>
@@ -15,9 +15,16 @@
         .cliente-info-table td { padding: 3px; vertical-align: top; border: none; }
         .cliente-info-table td:first-child { font-weight: bold; width: 120px; }
         hr { border: 0; border-top: 1px solid #eee; margin: 10px 0; }
-        h6 { font-size: 10px; margin: 10px 0 5px 0; border-bottom: 1px solid #ddd; padding-bottom: 3px;}
+        h6 { font-size: 10px; margin: 0 0 5px 0; border-bottom: 1px solid #ddd; padding-bottom: 3px;}
         .historico-item { font-size: 8px; margin-bottom: 5px; }
         .footer { position: fixed; bottom: -40px; left: 0px; right: 0px; height: 50px; text-align: center; font-size: 8px; color: #777; }
+        
+        /* Tabela invisível para o layout de 2 colunas */
+        .layout-table { width: 100%; border: none; }
+        .layout-table td { border: none; vertical-align: top; }
+        .left-column { width: 55%; padding-right: 10px; }
+        .right-column { width: 45%; padding-left: 10px; border-left: 1px solid #eee; }
+
     </style>
 </head>
 <body>
@@ -34,39 +41,49 @@
                 <h5>{{ cliente.empresa }}</h5>
             </div>
             
-            <table class="cliente-info-table">
+            <table class="layout-table">
                 <tr>
-                    <td>Status:</td>
-                    <td>
-                        {% if not cliente.ativo %}Inativo
-                        {% elif cliente.bloqueado %}Bloqueado
-                        {% elif cliente.validade < today %}Vencido
-                        {% else %}Ativo
+                    <td class="left-column">
+                        <table class="cliente-info-table">
+                            <tr>
+                                <td>Status:</td>
+                                <td>
+                                    {% if not cliente.ativo %}Inativo
+                                    {% elif cliente.bloqueado %}Bloqueado
+                                    {% elif cliente.validade < today %}Vencido
+                                    {% else %}Ativo
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr><td>CNPJ:</td><td>{{ cliente.cnpj }}</td></tr>
+                            <tr><td>Data Cadastro:</td><td>{{ cliente.data_criacao|date:"d/m/Y" }}</td></tr>
+                            <tr><td>Validade Contrato:</td><td>{{ cliente.validade|date:"d/m/Y" }}</td></tr>
+                            <tr><td>Sistema:</td><td>{{ cliente.sistema.nome }}</td></tr>
+                            <tr><td>Tipo Cobrança:</td><td>{{ cliente.get_tipo_cobranca_display|default:"-" }}</td></tr>
+                            <tr><td>Valor Atual:</td><td>
+                                {% if cliente.tipo_cobranca == 'M' %}R$ {{ cliente.valor_mensal|default:"0,00" }}
+                                {% elif cliente.tipo_cobranca == 'A' %}R$ {{ cliente.valor_anual|default:"0,00" }}
+                                {% else %}-
+                                {% endif %}
+                            </td></tr>
+                        </table>
+                    </td>
+
+                    <td class="right-column">
+                        {% if cliente.historico_renovacoes.all %}
+                            <h6>Histórico de Renovações</h6>
+                            {% for historico in cliente.historico_renovacoes.all %}
+                                <div class="historico-item">
+                                    - Em <strong>{{ historico.data_renovacao|date:"d/m/Y" }}</strong>: Valor de R$ {{ historico.valor_anterior|default:'0,00' }} para R$ {{ historico.novo_valor|default:'0,00' }} (+{{ historico.porcentagem_reajuste }}%). Validade de {{ historico.validade_anterior|date:"d/m/Y" }} para {{ historico.nova_validade|date:"d/m/Y" }}.
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p style="font-size: 8px; color: #777;">Nenhum histórico de renovação.</p>
                         {% endif %}
                     </td>
                 </tr>
-                <tr><td>CNPJ:</td><td>{{ cliente.cnpj }}</td></tr>
-                <tr><td>Data Cadastro:</td><td>{{ cliente.data_criacao|date:"d/m/Y" }}</td></tr>
-                <tr><td>Validade Contrato:</td><td>{{ cliente.validade|date:"d/m/Y" }}</td></tr>
-                <tr><td>Sistema:</td><td>{{ cliente.sistema.nome }}</td></tr>
-                <tr><td>Tipo Cobrança:</td><td>{{ cliente.get_tipo_cobranca_display|default:"-" }}</td></tr>
-                <tr><td>Valor Atual:</td><td>
-                    {% if cliente.tipo_cobranca == 'M' %}R$ {{ cliente.valor_mensal|default:"0,00" }}
-                    {% elif cliente.tipo_cobranca == 'A' %}R$ {{ cliente.valor_anual|default:"0,00" }}
-                    {% else %}-
-                    {% endif %}
-                </td></tr>
             </table>
-
-            {% if cliente.historico_renovacoes.all %}
-                <h6>Histórico de Renovações</h6>
-                {% for historico in cliente.historico_renovacoes.all %}
-                    <div class="historico-item">
-                        - Em <strong>{{ historico.data_renovacao|date:"d/m/Y" }}</strong>: Valor de R$ {{ historico.valor_anterior|default:'0,00' }} para R$ {{ historico.novo_valor|default:'0,00' }} (+{{ historico.porcentagem_reajuste }}%). Validade de {{ historico.validade_anterior|date:"d/m/Y" }} para {{ historico.nova_validade|date:"d/m/Y" }}.
-                    </div>
-                {% endfor %}
-            {% endif %}
-        </div>
+            </div>
     {% empty %}
         <p>Nenhum cliente encontrado para os filtros selecionados.</p>
     {% endfor %}
