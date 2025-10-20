@@ -365,13 +365,12 @@ def relatorio_contratos(request):
 
 @login_required
 def renovacao_list(request):
-    # Usa o novo formulário para processar TODOS os filtros GET
+    # Usa o formulário de filtro para processar os dados da URL
     filter_form = RenovacaoListFilterForm(request.GET or None)
     
     clientes = Cliente.objects.all().prefetch_related('historico_renovacoes')
 
-    # Aplica filtros se o formulário for válido (sempre será no GET, mas boa prática)
-    # E se houver dados (request.GET não está vazio)
+    # Aplica os filtros se o formulário for válido e se houver dados na URL
     if filter_form.is_valid() and request.GET:
         cnpj = filter_form.cleaned_data.get('cnpj')
         sistema = filter_form.cleaned_data.get('sistema')
@@ -383,7 +382,7 @@ def renovacao_list(request):
         data_inicio = filter_form.cleaned_data.get('data_inicio')
         data_fim = filter_form.cleaned_data.get('data_fim')
 
-        # Filtro Ativo/Inativo (lógica existente)
+        # Filtro Ativo/Inativo
         if mostrar_inativos:
             clientes = clientes.filter(ativo=False)
         else:
@@ -399,16 +398,15 @@ def renovacao_list(request):
         if mostrar_bloqueados:
             clientes = clientes.filter(bloqueado=True)
         if mostrar_vencidos:
-            # Garante que só mostre vencidos que ainda estão ativos/não inativos
             clientes = clientes.filter(validade__lt=date.today()) 
             
-        # --- NOVO FILTRO DE DATA ---
+        # --- CORREÇÃO APLICADA AQUI ---
+        # O filtro agora é aplicado sobre o campo 'validade' do contrato.
         if filtrar_por_data and data_inicio and data_fim:
-            # Ajusta data_fim para incluir o dia inteiro
-            fim_ajustado = datetime.combine(data_fim, time.max)
-            clientes = clientes.filter(data_criacao__gte=data_inicio, data_criacao__lte=fim_ajustado)
+            clientes = clientes.filter(validade__gte=data_inicio, validade__lte=data_fim)
+            
     else:
-         # Comportamento padrão se não houver filtro: mostrar apenas ativos
+         # Comportamento padrão se não houver nenhum filtro: mostrar apenas clientes ativos
          clientes = clientes.filter(ativo=True)
 
     clientes = clientes.order_by('empresa')
@@ -418,12 +416,12 @@ def renovacao_list(request):
     
     context = {
         'clientes': clientes, 
-        'sistemas': Sistema.objects.all(), # Ainda necessário para preencher o dropdown
-        'tecnicos': Tecnico.objects.all(),  # Ainda necessário para preencher o dropdown
+        'sistemas': Sistema.objects.all(),
+        'tecnicos': Tecnico.objects.all(),
         'today': date.today(),
         'total_clientes_filtrados': clientes.count(),
         'all_client_ids_str': all_client_ids_str,
-        'filter_form': filter_form, # Passa o formulário completo para o template
+        'filter_form': filter_form,
     }
     return render(request, 'contratos/renovacao/lista.html', context)
 
