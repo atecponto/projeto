@@ -167,48 +167,48 @@ def excluir_tecnico(request, pk):
 # --- Views de Cliente ---
 @login_required
 def listar_clientes(request):
-    clientes_list = Cliente.objects.select_related('sistema', 'tecnico').all()
+    # Usamos o prefetch_related que já estava no seu modal da lista de renovação
+    clientes = Cliente.objects.all().prefetch_related('historico_renovacoes')
 
-    filtro_cnpj = request.GET.get('cnpj')
-    filtro_sistema = request.GET.get('sistema')
-    filtro_tecnico = request.GET.get('tecnico')
-    mostrar_bloqueados = request.GET.get('mostrar_bloqueados')
-    mostrar_inativos = request.GET.get('mostrar_inativos')
+    # Lógica de filtro (a mesma que já funciona em 'renovacao_list')
+    cnpj = request.GET.get('cnpj')
+    sistema_id = request.GET.get('sistema')
+    tecnico_id = request.GET.get('tecnico')
     mostrar_vencidos = request.GET.get('mostrar_vencidos')
+    mostrar_inativos = request.GET.get('mostrar_inativos')
+    mostrar_bloqueados = request.GET.get('mostrar_bloqueados')
 
-    if mostrar_inativos == 'on':
-        clientes_list = clientes_list.filter(ativo=False)
+    if mostrar_inativos:
+        clientes = clientes.filter(ativo=False)
     else:
-        clientes_list = clientes_list.filter(ativo=True)
-    
-    if filtro_cnpj:
-        clientes_list = clientes_list.filter(cnpj__icontains=filtro_cnpj)
-    if filtro_sistema:
-        clientes_list = clientes_list.filter(sistema__id=filtro_sistema)
-    if filtro_tecnico:
-        clientes_list = clientes_list.filter(tecnico__id=filtro_tecnico)
-    if mostrar_bloqueados == 'on':
-        clientes_list = clientes_list.filter(bloqueado=True)
-    if mostrar_vencidos == 'on':
-        clientes_list = clientes_list.filter(validade__lt=date.today())
-        
-    paginator = Paginator(clientes_list.order_by('empresa'), 10)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+        clientes = clientes.filter(ativo=True) # Padrão é mostrar ativos
 
-    # --- CÁLCULO DAS ESTATÍSTICAS ADICIONADO AQUI ---
+    if cnpj:
+        clientes = clientes.filter(cnpj__icontains=cnpj)
+    if sistema_id:
+        clientes = clientes.filter(sistema_id=sistema_id)
+    if tecnico_id:
+        clientes = clientes.filter(tecnico_id=tecnico_id)
+    if mostrar_vencidos:
+        clientes = clientes.filter(validade__lt=date.today())
+    if mostrar_bloqueados:
+        clientes = clientes.filter(bloqueado=True)
+    
+    clientes = clientes.order_by('empresa')
+    
+    # --- A LÓGICA DE PAGINAÇÃO FOI REMOVIDA DAQUI ---
+
+    # Dados do modal de estatísticas (mantidos)
     total_ativos = Cliente.objects.filter(ativo=True).count()
     total_inativos = Cliente.objects.filter(ativo=False).count()
-    # Contamos apenas clientes ativos que também estão bloqueados/vencidos
     total_bloqueados = Cliente.objects.filter(ativo=True, bloqueado=True).count()
     total_vencidos = Cliente.objects.filter(ativo=True, validade__lt=date.today()).count()
 
     context = {
-        'page_obj': page_obj,
+        'clientes': clientes, # MUDANÇA: Passa a lista completa
         'sistemas': Sistema.objects.all(),
         'tecnicos': Tecnico.objects.all(),
         'today': date.today(),
-        # NOVAS VARIÁVEIS ENVIADAS PARA O TEMPLATE
         'total_ativos': total_ativos,
         'total_inativos': total_inativos,
         'total_bloqueados': total_bloqueados,
@@ -219,14 +219,40 @@ def listar_clientes(request):
 @login_required
 def criar_cliente(request):
     if request.method == 'POST':
+        # Flag para saber se este POST é uma confirmação de duplicidade
+        confirm_duplicate = request.POST.get('confirm_duplicate') == 'yes'
+        
         form = ClienteForm(request.POST, request.FILES)
+        
         if form.is_valid():
-            form.save()
-            messages.success(request, 'Cliente cadastrado com sucesso!')
-            return redirect('listar_clientes')
-    else:
+            cnpj_submetido = form.cleaned_data['cnpj']
+            
+            # Verifica se o CNPJ já existe E se não estamos confirmando a duplicidade
+            if Cliente.objects.filter(cnpj=cnpj_submetido).exists() and not confirm_duplicate:
+                # CNPJ existe e não foi confirmado: re-renderiza com aviso
+                messages.warning(request, f"Atenção: O CNPJ {cnpj_submetido} já está cadastrado.")
+                context = {
+                    'form': form, # Passa o formulário preenchido de volta
+                    'titulo': 'Novo Cliente',
+                    'show_confirmation': True, # Sinaliza para o template mostrar a confirmação
+                    'existing_cnpj': cnpj_submetido
+                }
+                return render(request, 'contratos/cliente/form.html', context)
+            else:
+                # CNPJ não existe OU a duplicidade foi confirmada: Salva!
+                novo_cliente = form.save()
+                messages.success(request, f"Cliente '{novo_cliente.empresa}' cadastrado com sucesso!")
+                return redirect('listar_clientes')
+        # else: Se o form NÃO for válido, ele continua para renderizar com os erros abaixo
+            
+    else: # Se for GET (primeira vez acessando a página)
         form = ClienteForm()
-    context = {'form': form, 'titulo': 'Cadastrar Novo Cliente'}
+
+    context = {
+        'form': form,
+        'titulo': 'Novo Cliente',
+        'show_confirmation': False # Não mostra confirmação no GET
+    }
     return render(request, 'contratos/cliente/form.html', context)
 
 @login_required

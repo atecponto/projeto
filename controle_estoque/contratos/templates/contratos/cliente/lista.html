@@ -2,6 +2,25 @@
 
 {% block title %}Clientes{% endblock %}
 
+{% block extra_css %}
+<style>
+    .table-container-sticky {
+        max-height: 65vh; /* Define a altura máxima da tabela */
+        overflow-y: auto; /* Adiciona a barra de rolagem vertical */
+        position: relative;
+    }
+
+    .table-container-sticky thead th {
+        position: -webkit-sticky; /* Compatibilidade com Safari */
+        position: sticky;
+        top: 0; /* Fixa o cabeçalho no topo da área de rolagem */
+        z-index: 2;
+        background-color: #ffffff; /* Fundo branco para não ficar transparente */
+        border-bottom-width: 2px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="card shadow-sm">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -73,7 +92,7 @@
             {% endfor %}
         {% endif %}
 
-        <div class="table-responsive">
+        <div class="table-responsive table-container-sticky">
             <table class="table table-striped table-hover">
                 <thead>
                     <tr>
@@ -86,7 +105,7 @@
                     </tr>
                 </thead>
                 <tbody id="tabelaClientes">
-                    {% for cliente in page_obj %}
+                    {% for cliente in clientes %}
                     <tr class="{% if cliente.validade < today %}table-danger{% endif %}">
                         <td>{{ cliente.empresa }}</td>
                         <td class="cnpj-col">{{ cliente.cnpj }}</td>
@@ -126,11 +145,10 @@
                 </tbody>
             </table>
         </div>
-        {% include 'partials/pagination.html' %}
-    </div>
+        </div>
 </div>
 
-{% for cliente in page_obj %}
+{% for cliente in clientes %}
 <div class="modal fade" id="modalCliente{{ cliente.pk }}" tabindex="-1" aria-labelledby="modalClienteLabel{{ cliente.pk }}" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
@@ -151,7 +169,7 @@
                         {% endif %}
                     </dd>
                     <dt class="col-sm-3">Empresa</dt><dd class="col-sm-9">{{ cliente.empresa }}</dd>
-                    <dt class="col-sm-3">CNPJ</dt><dd class="col-sm-9">{{ cliente.cnpj }}</dd>
+                    <dt class="col-sm-3">CNPJ</dt><dd class="col-sm-9 cnpj-col">{{ cliente.cnpj }}</dd>
                     <dt class="col-sm-3">Validade do Contrato</dt><dd class="col-sm-9">{{ cliente.validade|date:"d/m/Y" }} {% if cliente.validade < today %}<span class="badge bg-danger">Vencido</span>{% endif %}</dd>
                     <dt class="col-sm-3">Sistema</dt><dd class="col-sm-9">{{ cliente.sistema.nome }}</dd>
                     <dt class="col-sm-3">Técnico Responsável</dt><dd class="col-sm-9">{{ cliente.tecnico.nome|default:"Não informado" }}</dd>
@@ -191,7 +209,6 @@
                                 <h6 class="mb-1">Renovação em {{ historico.data_renovacao|date:"d/m/Y" }}</h6>
                                 <small class="text-muted">
                                     Por: {{ historico.usuario_responsavel.username|default:'N/A' }}
-                                    
                                     <button type="button" class="btn btn-link text-danger p-0 ms-2" style="vertical-align: middle;" title="Excluir este registro"
                                             data-bs-toggle="modal" 
                                             data-bs-target="#confirmDeleteModal" 
@@ -273,6 +290,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Seu script de busca original
         const buscaInput = document.getElementById('buscaCnpj');
         const tabelaBody = document.getElementById('tabelaClientes');
         const linhasTabela = tabelaBody.getElementsByTagName('tr');
@@ -296,7 +314,7 @@
             });
         }
 
-        // SCRIPT PARA O MODAL DE CONFIRMAÇÃO
+        // Seu script de modal de exclusão original
         const confirmDeleteModal = document.getElementById('confirmDeleteModal');
         if (confirmDeleteModal) {
             confirmDeleteModal.addEventListener('show.bs.modal', function (event) {
@@ -306,6 +324,22 @@
                 deleteForm.setAttribute('action', deleteUrl);
             });
         }
+
+        // Seu script de formatação de CNPJ/CPF original
+        function formatarDocumento(celula) {
+            let valor = celula.textContent.replace(/\D/g, ''); // Pega só os números
+            
+            if (valor.length === 11) {
+                valor = valor.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+                celula.textContent = valor;
+            } else if (valor.length === 14) {
+                valor = valor.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+                celula.textContent = valor;
+            }
+        }
+        document.querySelectorAll('.cnpj-col').forEach(function(celula) {
+            formatarDocumento(celula);
+        });
     });
 </script>
 {% endblock %}

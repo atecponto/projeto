@@ -55,14 +55,14 @@
                 <div class="col-md-8">
                     <label class="form-label"><strong>Tipo de Cobrança:</strong></label>
                     <div class="btn-group btn-group-sm w-100" role="group">
-                        <input type="radio" class="btn-check" name="{{ form.tipo_cobranca.name }}" id="id_tipo_mensal" value="M" autocomplete="off" {% if form.instance.tipo_cobranca == 'M' %}checked{% endif %}>
+                        <input type="radio" class="btn-check" name="{{ form.tipo_cobranca.name }}" id="id_tipo_mensal" value="M" autocomplete="off" {% if form.instance.tipo_cobranca == 'M' or form.tipo_cobranca.value == 'M' %}checked{% endif %}>
                         <label class="btn btn-outline-primary" for="id_tipo_mensal">Mensal</label>
-                        <input type="radio" class="btn-check" name="{{ form.tipo_cobranca.name }}" id="id_tipo_anual" value="A" autocomplete="off" {% if form.instance.tipo_cobranca == 'A' %}checked{% endif %}>
+                        <input type="radio" class="btn-check" name="{{ form.tipo_cobranca.name }}" id="id_tipo_anual" value="A" autocomplete="off" {% if form.instance.tipo_cobranca == 'A' or form.tipo_cobranca.value == 'A' %}checked{% endif %}>
                         <label class="btn btn-outline-primary" for="id_tipo_anual">Anual</label>
                     </div>
                     {% if form.tipo_cobranca.errors %}<div class="text-danger small mt-1">{{ form.tipo_cobranca.errors }}</div>{% endif %}
                     
-                    <div id="campos_mensal" style="display: none;" class="mt-2">
+                    <div id="campos_mensal" style="display: {% if form.instance.tipo_cobranca == 'M' or form.tipo_cobranca.value == 'M' %}block{% else %}none{% endif %};" class="mt-2">
                         <div class="row align-items-center">
                             <div class="col"><label for="id_valor_mensal" class="form-label form-label-sm">Valor Mensal</label>{{ form.valor_mensal }}</div>
                             <div class="col-auto text-center pt-3">X</div>
@@ -72,7 +72,7 @@
                         </div>
                         {% if form.valor_mensal.errors %}<div class="text-danger small mt-1">{{ form.valor_mensal.errors }}</div>{% endif %}
                     </div>
-                    <div id="campos_anual" style="display: none;" class="mt-2">
+                    <div id="campos_anual" style="display: {% if form.instance.tipo_cobranca == 'A' or form.tipo_cobranca.value == 'A' %}block{% else %}none{% endif %};" class="mt-2">
                         <div class="row"><div class="col-lg-6 col-md-8"><label for="id_valor_anual" class="form-label form-label-sm">Valor Anual</label>{{ form.valor_anual }}{% if form.valor_anual.errors %}<div class="text-danger small mt-1">{{ form.valor_anual.errors }}</div>{% endif %}</div></div>
                     </div>
                 </div>
@@ -93,6 +93,8 @@
                 {{ form.bloqueado }}
                 <label class="form-check-label" for="{{ form.bloqueado.id_for_label }}">{{ form.bloqueado.label }}</label>
             </div>
+
+            <input type="hidden" name="confirm_duplicate" id="confirm_duplicate_input" value="no">
 
             <div class="d-flex justify-content-between mt-4">
                 <div>
@@ -147,22 +149,56 @@
 </div>
 {% endif %}
 
+<div class="modal fade" id="confirmDuplicateModal" tabindex="-1" aria-labelledby="confirmDuplicateModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title" id="confirmDuplicateModalLabel">Atenção: CNPJ Já Cadastrado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>O CNPJ <strong>{{ existing_cnpj }}</strong> já existe no sistema.</p>
+                <p>Deseja fazer um novo cadastro para este CNPJ mesmo assim?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Não, Cancelar</button>
+                <button type="button" id="confirmDuplicateButton" class="btn btn-primary">Sim, Cadastrar Mesmo Assim</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const cnpjInput = document.getElementById('id_cnpj_mascara');
+        
+        // --- INÍCIO DO SCRIPT DE MÁSCARA CPF/CNPJ ATUALIZADO ---
+        // Ele agora usa 'id_cnpj' que é o ID correto do campo
+        const cnpjInput = document.getElementById('id_cnpj');
         if (cnpjInput) {
             cnpjInput.addEventListener('input', function (e) {
-                let valor = e.target.value.replace(/\D/g, '');
-                valor = valor.substring(0, 14);
-                if (valor.length > 12) { valor = valor.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2}).*/, '$1.$2.$3/$4-$5'); } 
-                else if (valor.length > 8) { valor = valor.replace(/^(\d{2})(\d{3})(\d{3})(\d{0,4}).*/, '$1.$2.$3/$4'); } 
-                else if (valor.length > 5) { valor = valor.replace(/^(\d{2})(\d{3})(\d{0,3}).*/, '$1.$2.$3'); } 
-                else if (valor.length > 2) { valor = valor.replace(/^(\d{2})(\d{0,3}).*/, '$1.$2'); }
+                let valor = e.target.value.replace(/\D/g, ''); // Remove tudo que não é dígito
+
+                if (valor.length <= 11) { // Formatação de CPF
+                    valor = valor.substring(0, 11); // Garante que não passe de 11
+                    valor = valor.replace(/(\d{3})(\d)/, '$1.$2');
+                    valor = valor.replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+                    valor = valor.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+                } else { // Formatação de CNPJ
+                    valor = valor.substring(0, 14); // Garante que não passe de 14
+                    // Aplica a máscara de CNPJ
+                    valor = valor.replace(/^(\d{2})(\d)/, '$1.$2');
+                    valor = valor.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                    valor = valor.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                    valor = valor.replace(/(\d{4})(\d)/, '$1-$2');
+                }
                 e.target.value = valor;
             });
         }
+        // --- FIM DO SCRIPT DE MÁSCARA ---
         
+        
+        // --- Seu script de cálculo de valor (mantido 100%) ---
         const radioMensal = document.getElementById('id_tipo_mensal');
         const radioAnual = document.getElementById('id_tipo_anual');
         const camposMensal = document.getElementById('campos_mensal');
@@ -185,6 +221,7 @@
         }
 
         function calcularTotal() {
+            if (!valorMensalInput) return; // Verificação de segurança
             let valorString = valorMensalInput.value;
             if (!valorString) {
                 valorTotalInput.value = (0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -199,15 +236,42 @@
             valorTotalInput.value = total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
-        radioMensal.addEventListener('change', toggleCampos);
-        radioAnual.addEventListener('change', toggleCampos);
-        valorMensalInput.addEventListener('input', calcularTotal);
-        mesesContratoInput.addEventListener('input', calcularTotal);
+        if(radioMensal && radioAnual) { // Verificação de segurança
+            radioMensal.addEventListener('change', toggleCampos);
+            radioAnual.addEventListener('change', toggleCampos);
+        }
+        
+        if (valorMensalInput && mesesContratoInput) { // Verificação de segurança
+            valorMensalInput.addEventListener('input', calcularTotal);
+            mesesContratoInput.addEventListener('input', calcularTotal);
+        }
 
         toggleCampos();
-        if(valorMensalInput.value) { 
+        if(valorMensalInput && valorMensalInput.value) { 
             calcularTotal();
         }
+        // --- Fim do seu script de cobrança ---
+
+
+        // --- SCRIPT PARA MOSTRAR O MODAL (mantido 100%) ---
+        const showConfirmation = {{ show_confirmation|yesno:"true,false" }};
+        const confirmDuplicateModalElement = document.getElementById('confirmDuplicateModal');
+        const confirmDuplicateButton = document.getElementById('confirmDuplicateButton');
+        const clienteForm = document.getElementById('clienteForm');
+        const confirmDuplicateInput = document.getElementById('confirm_duplicate_input');
+
+        if (showConfirmation && confirmDuplicateModalElement) {
+            const modal = new bootstrap.Modal(confirmDuplicateModalElement);
+            modal.show();
+        }
+
+        if (confirmDuplicateButton && clienteForm && confirmDuplicateInput) {
+            confirmDuplicateButton.addEventListener('click', function() {
+                confirmDuplicateInput.value = 'yes';
+                clienteForm.submit();
+            });
+        }
+        // --- FIM DO NOVO SCRIPT ---
     });
 </script>
 

@@ -23,7 +23,7 @@ class Cliente(models.Model):
 
     # Campos existentes
     empresa = models.CharField(max_length=200)
-    cnpj = models.CharField(max_length=18, unique=True, verbose_name="CNPJ")
+    cnpj = models.CharField(max_length=18, verbose_name="CNPJ")
     sistema = models.ForeignKey(Sistema, on_delete=models.PROTECT, verbose_name="Sistema")
     data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Cadastro")
     # GARANTINDO A PROTEÇÃO CONTRA EXCLUSÃO
