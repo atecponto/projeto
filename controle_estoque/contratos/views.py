@@ -13,7 +13,7 @@ from inventario.utils import render_to_pdf # Reutilizando a função de PDF do s
 from django.utils import timezone
 import calendar
 from django.http import HttpResponse
-from django.db.models import Sum
+from django.db.models import Count, Sum, Q
 from datetime import date, datetime, time
 from decimal import Decimal
 from dateutil.relativedelta import relativedelta
@@ -318,36 +318,32 @@ def relatorio_contratos(request):
             start_date = timezone.make_aware(datetime.combine(data_inicio, time.min))
             end_date = timezone.make_aware(datetime.combine(data_fim, time.max))
             
-            # Filtro base por data de cadastro
+            # 1. Filtro base por data de cadastro
             clientes = Cliente.objects.filter(
                 data_criacao__gte=start_date,
                 data_criacao__lte=end_date
             )
 
-            # Aplica filtros de sistema e técnico
+            # 2. Filtros de objeto
             if sistema_obj:
                 clientes = clientes.filter(sistema=sistema_obj)
             if tecnico_obj:
                 clientes = clientes.filter(tecnico=tecnico_obj)
             
-            # --- INÍCIO DA NOVA LÓGICA ---
+            # 3. Lógica de filtro de status (para a tabela)
             status_counts = None
-            # Se o filtro for "Todos os Status", calculamos as contagens
-            if not status:
-                # Fazemos uma cópia do queryset filtrado para calcular os totais
-                clientes_filtrados = clientes
-                
-                # A contagem de vencidos precisa ser feita em cima dos clientes que estão ativos e não bloqueados
-                vencidos_count = clientes_filtrados.filter(ativo=True, bloqueado=False, validade__lt=date.today()).count()
-                
+            if not status: # Se for "Todos os Status"
+                # Fazemos uma cópia do queryset para calcular os totais de status
+                clientes_filtrados_status = clientes
+                vencidos_count = clientes_filtrados_status.filter(ativo=True, bloqueado=False, validade__lt=date.today()).count()
                 status_counts = {
-                    'ativos': clientes_filtrados.filter(ativo=True, bloqueado=False, validade__gte=date.today()).count(),
-                    'inativos': clientes_filtrados.filter(ativo=False).count(),
-                    'bloqueados': clientes_filtrados.filter(bloqueado=True).count(),
+                    'ativos': clientes_filtrados_status.filter(ativo=True, bloqueado=False, validade__gte=date.today()).count(),
+                    'inativos': clientes_filtrados_status.filter(ativo=False).count(),
+                    'bloqueados': clientes_filtrados_status.filter(bloqueado=True).count(),
                     'vencidos': vencidos_count,
                 }
-            # Se um status específico foi selecionado, aplicamos o filtro
             else:
+                # Se um status específico foi selecionado, filtramos o queryset principal
                 if status == 'ativos':
                     clientes = clientes.filter(ativo=True)
                 elif status == 'inativos':
@@ -356,7 +352,15 @@ def relatorio_contratos(request):
                     clientes = clientes.filter(bloqueado=True)
                 elif status == 'vencidos':
                     clientes = clientes.filter(validade__lt=date.today())
-            # --- FIM DA NOVA LÓGICA ---
+            
+            # --- INÍCIO DA CORREÇÃO DA SOMA FINANCEIRA ---
+            # Criamos um novo queryset para a soma que SEMPRE filtra por 'ativo=True'
+            # Isso garante que clientes Inativos nunca sejam somados.
+            clientes_para_soma = clientes.filter(ativo=True)
+            
+            total_mensal = clientes_para_soma.filter(tipo_cobranca='M').aggregate(total=Sum('valor_mensal'))['total'] or 0
+            total_anual = clientes_para_soma.filter(tipo_cobranca='A').aggregate(total=Sum('valor_anual'))['total'] or 0
+            # --- FIM DA CORREÇÃO DA SOMA FINANCEIRA ---
 
             resumo_por_sistema = clientes.values('sistema__nome').annotate(quantidade=Count('id')).order_by('-quantidade')
             resumo_por_tecnico = clientes.exclude(tecnico__isnull=True).values('tecnico__nome').annotate(quantidade=Count('id')).order_by('-quantidade')
@@ -372,7 +376,9 @@ def relatorio_contratos(request):
                 'resumo_por_sistema': resumo_por_sistema,
                 'resumo_por_tecnico': resumo_por_tecnico,
                 'today': date.today(),
-                'status_counts': status_counts, # Adiciona as contagens ao contexto
+                'status_counts': status_counts,
+                'total_mensal': total_mensal,
+                'total_anual': total_anual,
             }
             
             pdf = render_to_pdf('contratos/relatorio/pdf_template.html', context)
