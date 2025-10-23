@@ -18,6 +18,31 @@
         background-color: #ffffff; /* Fundo branco para não ficar transparente */
         border-bottom-width: 2px;
     }
+
+    /* --- INÍCIO DA ADIÇÃO (CSS DE IMPRESSÃO) --- */
+    @media print {
+        /* 1. Esconde tudo na página por padrão */
+        body * {
+            visibility: hidden;
+        }
+        /* 2. Mostra apenas o modal que queremos imprimir e seus filhos */
+        .printable-modal, .printable-modal * {
+            visibility: visible;
+        }
+        /* 3. Posiciona o modal no topo da página de impressão */
+        .printable-modal {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+        /* 4. Esconde os botões do cabeçalho e rodapé do modal ao imprimir */
+        .printable-modal .modal-header .btn-close,
+        .printable-modal .modal-footer {
+            display: none;
+        }
+    }
+    /* --- FIM DA ADIÇÃO (CSS DE IMPRESSÃO) --- */
 </style>
 {% endblock %}
 
@@ -227,6 +252,9 @@
                 {% endif %}
             </div>
             <div class="modal-footer">
+                <button type="button" class="btn btn-primary btn-print-modal">
+                    <i class="fas fa-print me-1"></i> Imprimir
+                </button>
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
@@ -340,6 +368,28 @@
         document.querySelectorAll('.cnpj-col').forEach(function(celula) {
             formatarDocumento(celula);
         });
+
+        // --- INÍCIO DA ADIÇÃO (SCRIPT DE IMPRESSÃO) ---
+        document.querySelectorAll('.btn-print-modal').forEach(function(button) {
+            button.addEventListener('click', function() {
+                // Pega o elemento .modal-content mais próximo do botão clicado
+                const modalContent = this.closest('.modal-content');
+                
+                // Adiciona a classe especial que o nosso CSS de impressão usa
+                modalContent.classList.add('printable-modal');
+                
+                // Adiciona um listener para limpar a classe depois da impressão
+                // (Isso roda se o usuário clicar em 'Imprimir' OU 'Cancelar')
+                window.addEventListener('afterprint', function() {
+                    modalContent.classList.remove('printable-modal');
+                }, { once: true }); // O 'once: true' faz o listener ser usado só uma vez
+                
+                // Chama a janela de impressão do navegador
+                window.print();
+            });
+        });
+        // --- FIM DA ADIÇÃO (SCRIPT DE IMPRESSÃO) ---
+
     });
 </script>
 {% endblock %}
