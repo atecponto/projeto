@@ -1,0 +1,32 @@
+{% extends "pedido/base_pedido.html" %}
+
+{% block title %}Confirmar Exclusão{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <h5>Confirmar Exclusão</h5>
+    </div>
+    <div class="card-body">
+        <p>Tem certeza que deseja excluir a categoria <strong>{{ categoria.nome }}</strong>?</p>
+        
+        {% if contagem_pedidos > 0 %}
+        <div class="alert alert-warning">
+            <strong>Atenção!</strong> Esta categoria possui {{ contagem_pedidos }} pedido(s) vinculado(s).
+        </div>
+        {% endif %}
+        
+        <form method="post">
+            {% csrf_token %}
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                <a href="{% url 'pedido:listar_categorias_pedido' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-danger" {% if contagem_pedidos > 0 %}disabled{% endif %}>
+                    <i class="fas fa-trash"></i> Confirmar Exclusão
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
