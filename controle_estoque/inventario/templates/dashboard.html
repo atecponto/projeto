@@ -11,20 +11,12 @@
     <h1 class="display-5 mb-5 fw-bold dashboard-title">Painel de Navegação</h1>
 
     <div class="row g-4 justify-content-center">
+
         <div class="col-lg-3 col-md-4">
             <a href="{% url 'listar_clientes' %}" class="dashboard-card text-decoration-none">
                 <div class="card-body">
                     <i class="fas fa-file-signature fa-4x mb-3"></i>
                     <h5 class="card-title">Contrato</h5>
-                </div>
-            </a>
-        </div>
-
-        <div class="col-lg-3 col-md-4">
-            <a href="#" class="dashboard-card text-decoration-none">
-                <div class="card-body">
-                    <i class="fas fa-users fa-4x mb-3"></i>
-                    <h5 class="card-title">Cliente</h5>
                 </div>
             </a>
         </div>
@@ -48,13 +40,19 @@
         </div>
 
         <div class="col-lg-3 col-md-4">
-            <a href="#" class="dashboard-card text-decoration-none">
-                <div class="card-body">
-                    <i class="fas fa-handshake fa-4x mb-3"></i>
-                    <h5 class="card-title">Revenda</h5>
+            <a href="{% url 'listar_pedidos' %}" class="dashboard-card text-decoration-none"> <div class="card-body">
+                    <i class="fas fa-pencil-alt fa-4x mb-3"></i> <h5 class="card-title">Pedido</h5>
                 </div>
             </a>
         </div>
+
+        <div class="col-lg-3 col-md-4">
+            <a href="#" class="dashboard-card text-decoration-none"> <div class="card-body">
+                    <i class="fas fa-user fa-4x mb-3"></i> <h5 class="card-title">Funcionário</h5>
+                </div>
+            </a>
+        </div>
+
     </div>
 </div>
 {% endblock %}

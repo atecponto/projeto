@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'inventario',
     'contratos',
+    'pedido',
 ]
 
 MIDDLEWARE = [
@@ -167,3 +168,4 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # CONFIGURAÇÃO DE UPLOAD DE ARQUIVOS (MÍDIA)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+

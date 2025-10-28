@@ -30,6 +30,8 @@ urlpatterns = [
 
     # Seção de Contratos (agora inclui as URLs do novo app)
     path('contratos/', include('contratos.urls')),
+    # Seção de Pedidos (agora inclui as URLs do novo app)
+    path('pedido/', include('pedido.urls')),
 
     # Seção de Estoque
     path('produtos/', views.listar_produtos, name='listar_produtos'),
