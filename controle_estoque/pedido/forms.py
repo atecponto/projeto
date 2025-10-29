@@ -61,3 +61,40 @@ class ClientePedidoForm(forms.ModelForm):
         })
         if self.fields['tecnico'].required == False: 
             self.fields['tecnico'].empty_label = "Nenhum técnico"
+
+class ClientePedidoFilterForm(forms.Form):
+    categoria = forms.ModelChoiceField(
+        queryset=CategoriaPedido.objects.all(),
+        required=False,
+        label='Filtrar por Categoria',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
+    # Filtro de Data 
+    filtrar_por_data = forms.BooleanField(
+        required=False, 
+        label="Período", 
+        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+    )
+    data_inicio = forms.DateField(
+        required=False, 
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}) # Placeholder 'dd/mm/aaaa' é automático do 'date'
+    )
+    data_fim = forms.DateField(
+        required=False, 
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}) # Placeholder 'dd/mm/aaaa' é automático
+    )
+
+    # Validação (copiada do seu form de Renovação)
+    def clean(self):
+        cleaned_data = super().clean()
+        filtrar = cleaned_data.get('filtrar_por_data')
+        inicio = cleaned_data.get('data_inicio')
+        fim = cleaned_data.get('data_fim')
+
+        if filtrar:
+            if not inicio or not fim:
+                raise forms.ValidationError("Se 'Período' estiver marcado, as datas de início e fim são obrigatórias.")
+            if inicio > fim:
+                raise forms.ValidationError("A data de início não pode ser maior que a data de fim.")
+        return cleaned_data

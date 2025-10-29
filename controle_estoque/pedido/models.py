@@ -2,6 +2,7 @@ from django.db import models
 from decimal import Decimal
 from contratos.models import Tecnico
 from django.conf import settings
+from django.utils import timezone
 
 class CategoriaPedido(models.Model):
     nome = models.CharField(max_length=100, unique=True)
@@ -23,6 +24,10 @@ class ClientePedido(models.Model):
         blank=True,
         verbose_name="Usuário Criador"
     )
+    data_criacao = models.DateTimeField(
+        auto_now_add=True, 
+        verbose_name="Data de Cadastro"
+    )
 
     nome = models.CharField(max_length=200, verbose_name="Nome/Empresa")
     cnpj = models.CharField(max_length=18, verbose_name="CNPJ/CPF")
@@ -40,9 +45,9 @@ class ClientePedido(models.Model):
     tecnico = models.ForeignKey(Tecnico, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Técnico Responsável")
     descricao_pedido = models.TextField(blank=True, null=True, verbose_name="Descrição do Pedido")
     
-    # --- REMOVIDA A DUPLICIDADE AQUI ---
+
     valor_pedido = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor do Pedido", default=Decimal('0.00'))
-    # ------------------------------------
+ 
     
     class Meta:
         ordering = ['nome']

@@ -2,10 +2,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from .models import CategoriaPedido, ClientePedido
-from .forms import CategoriaPedidoForm, ClientePedidoForm
+from .forms import CategoriaPedidoForm, ClientePedidoForm, ClientePedidoFilterForm
 from django.core.paginator import Paginator
 from django.db.models import ProtectedError
 from django.db.models import ProtectedError, Q
+from datetime import datetime, time
 
 @login_required
 def listar_pedidos(request):
@@ -47,7 +48,6 @@ def criar_categoria_pedido(request):
         if form.is_valid():
             form.save()
             messages.success(request, 'Categoria criada com sucesso!')
-            # Redireciona para a lista usando o namespace 'pedido:listar_categorias_pedido'
             return redirect('pedido:listar_categorias_pedido')
     else:
         form = CategoriaPedidoForm()
@@ -117,32 +117,46 @@ def listar_clientes_pedido(request):
     """
     Lista, busca (JS) e filtra os Clientes (do app Pedido).
     """
-    # Adiciona 'usuario_criador' ao select_related para otimizar
+    # Query base (sem alterações)
     clientes_list = ClientePedido.objects.select_related('categoria', 'usuario_criador').all()
     
-    # --- LÓGICA DE PERMISSÃO ---
-    # Se o usuário NÃO for superusuário, filtre a lista
-    # para mostrar apenas os registros criados por ele.
+    # Lógica de permissão (sem alterações)
     if not request.user.is_superuser:
         clientes_list = clientes_list.filter(usuario_criador=request.user)
-    # ----------------------------
     
-    # Filtro por Categoria (Lógica existente)
-    categoria_id = request.GET.get('categoria')
-    if categoria_id:
-        clientes_list = clientes_list.filter(categoria_id=categoria_id)
+    # --- LÓGICA DE FILTRO ATUALIZADA ---
+    # Instancia o formulário de filtro com os dados do GET
+    filter_form = ClientePedidoFilterForm(request.GET or None)
+
+    # Aplica os filtros se o formulário for válido (e tiver dados)
+    if filter_form.is_valid():
+        categoria = filter_form.cleaned_data.get('categoria')
+        if categoria:
+            clientes_list = clientes_list.filter(categoria=categoria)
         
-    # Paginação (Lógica existente)
+        # Filtro de Data (novo)
+        if filter_form.cleaned_data.get('filtrar_por_data'):
+            data_inicio = filter_form.cleaned_data.get('data_inicio')
+            data_fim = filter_form.cleaned_data.get('data_fim')
+            
+            if data_inicio and data_fim:
+                # Converte a data final para o fim do dia (23:59:59)
+                data_fim_com_hora = datetime.combine(data_fim, time.max)
+                # Filtra pelo campo 'data_criacao' no range
+                clientes_list = clientes_list.filter(data_criacao__range=[data_inicio, data_fim_com_hora])
+    # ------------------------------------
+        
+    # Paginação (sem alterações)
     paginator = Paginator(clientes_list, 15) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     context = {
         'page_obj': page_obj,
-        'categorias': CategoriaPedido.objects.all(), 
+        'filter_form': filter_form,
         'request': request, 
     }
-    return render(request, 'pedido/cliente/lista.html', context) 
+    return render(request, 'pedido/cliente/lista.html', context)
 
 @login_required
 def criar_cliente_pedido(request):
@@ -152,14 +166,13 @@ def criar_cliente_pedido(request):
     if request.method == 'POST':
         form = ClientePedidoForm(request.POST)
         if form.is_valid():
-            # --- LÓGICA DE PROPRIEDADE ---
-            # 1. Não salve no banco ainda
+
             novo_pedido = form.save(commit=False) 
-            # 2. Defina o usuário logado como o criador
+
             novo_pedido.usuario_criador = request.user 
-            # 3. Agora salve no banco
+
             novo_pedido.save() 
-            # -----------------------------
+
             messages.success(request, 'Cliente cadastrado com sucesso!')
             return redirect('pedido:listar_clientes_pedido')
     else:
@@ -178,12 +191,10 @@ def editar_cliente_pedido(request, pk):
     """
     cliente = get_object_or_404(ClientePedido, pk=pk)
 
-    # --- CHECAGEM DE SEGURANÇA ---
-    # Se não for superusuário E não for o dono do registro
+
     if not request.user.is_superuser and cliente.usuario_criador != request.user:
         messages.error(request, 'Você não tem permissão para editar este registro.')
         return redirect('pedido:listar_clientes_pedido')
-    # -----------------------------
 
     if request.method == 'POST':
         form = ClientePedidoForm(request.POST, instance=cliente)
@@ -207,12 +218,9 @@ def excluir_cliente_pedido(request, pk):
     """
     cliente = get_object_or_404(ClientePedido, pk=pk)
     
-    # --- CHECAGEM DE SEGURANÇA ---
-    # Se não for superusuário E não for o dono do registro
     if not request.user.is_superuser and cliente.usuario_criador != request.user:
         messages.error(request, 'Você não tem permissão para excluir este registro.')
         return redirect('pedido:listar_clientes_pedido')
-    # -----------------------------
 
     if request.method == 'POST':
         try:
