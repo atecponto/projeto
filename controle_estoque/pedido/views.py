@@ -2,10 +2,11 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from .models import CategoriaPedido
-from .forms import CategoriaPedidoForm
+from .models import CategoriaPedido, ClientePedido
+from .forms import CategoriaPedidoForm, ClientePedidoForm
 from django.core.paginator import Paginator
 from django.db.models import ProtectedError
+from django.db.models import ProtectedError, Q
 
 @login_required
 def listar_pedidos(request):
@@ -111,3 +112,91 @@ def excluir_categoria_pedido(request, pk):
         'contagem_pedidos': contagem_pedidos
     }
     return render(request, 'pedido/categoria/confirmar_exclusao.html', context)
+
+@login_required
+def listar_clientes_pedido(request):
+    """
+    Lista, busca (JS) e filtra os Clientes (do app Pedido).
+    """
+    clientes_list = ClientePedido.objects.select_related('categoria').all()
+    
+    categoria_id = request.GET.get('categoria')
+    if categoria_id:
+        clientes_list = clientes_list.filter(categoria_id=categoria_id)
+        
+    paginator = Paginator(clientes_list, 15) 
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'categorias': CategoriaPedido.objects.all(), 
+        'request': request, 
+    }
+    # ATUALIZADO: Aponta para 'lista.html'
+    return render(request, 'pedido/cliente/lista.html', context) 
+
+@login_required
+def criar_cliente_pedido(request):
+    """
+    Cria um novo Cliente (do app Pedido).
+    """
+    if request.method == 'POST':
+        form = ClientePedidoForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Cliente cadastrado com sucesso!')
+            return redirect('pedido:listar_clientes_pedido')
+    else:
+        form = ClientePedidoForm()
+
+    context = {
+        'form': form,
+        'titulo': 'Novo Cliente'
+    }
+    # ATUALIZADO: Aponta para 'form.html'
+    return render(request, 'pedido/cliente/form.html', context) 
+
+@login_required
+def editar_cliente_pedido(request, pk):
+    """
+    Edita um Cliente (do app Pedido) existente.
+    """
+    cliente = get_object_or_404(ClientePedido, pk=pk)
+    if request.method == 'POST':
+        form = ClientePedidoForm(request.POST, instance=cliente)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Cliente atualizado com sucesso!')
+            return redirect('pedido:listar_clientes_pedido')
+    else:
+        form = ClientePedidoForm(instance=cliente)
+
+    context = {
+        'form': form,
+        'titulo': f'Editando Cliente: {cliente.nome}'
+    }
+    # ATUALIZADO: Aponta para 'form.html'
+    return render(request, 'pedido/cliente/form.html', context) 
+
+@login_required
+def excluir_cliente_pedido(request, pk):
+    """
+    Exclui um Cliente (do app Pedido).
+    """
+    cliente = get_object_or_404(ClientePedido, pk=pk)
+    
+    if request.method == 'POST':
+        try:
+            nome_cliente = cliente.nome
+            cliente.delete()
+            messages.success(request, f'Cliente "{nome_cliente}" excluído com sucesso!')
+        except ProtectedError:
+            messages.error(request, f'Não é possível excluir "{cliente.nome}", pois ele está em uso.')
+        return redirect('pedido:listar_clientes_pedido')
+
+    context = {
+        'cliente': cliente,
+    }
+    # ATUALIZADO: Aponta para 'excluir.html'
+    return render(request, 'pedido/cliente/excluir.html', context)

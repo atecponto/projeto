@@ -1,0 +1,114 @@
+{% extends "pedido/base_pedido.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h5>{{ titulo }}</h5>
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label for="{{ form.nome.id_for_label }}" class="form-label"><strong>Nome/Empresa:</strong></label>
+                    {{ form.nome }}
+                    {% if form.nome.errors %}<div class="text-danger small mt-1">{{ form.nome.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.cnpj.id_for_label }}" class="form-label"><strong>CNPJ/CPF:</strong></label>
+                    {{ form.cnpj }}
+                    {% if form.cnpj.errors %}<div class="text-danger small mt-1">{{ form.cnpj.errors }}</div>{% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.email.id_for_label }}" class="form-label"><strong>Email:</strong></label>
+                    {{ form.email }}
+                    {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.telefone.id_for_label }}" class="form-label"><strong>Telefone:</strong></label>
+                    {{ form.telefone }}
+                    {% if form.telefone.errors %}<div class="text-danger small mt-1">{{ form.telefone.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.contato.id_for_label }}" class="form-label"><strong>Pessoa de Contato:</strong></label>
+                    {{ form.contato }}
+                    {% if form.contato.errors %}<div class="text-danger small mt-1">{{ form.contato.errors }}</div>{% endif %}
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.categoria.id_for_label }}" class="form-label"><strong>Categoria Padrão (Opcional):</strong></label>
+                {{ form.categoria }}
+                {% if form.categoria.errors %}<div class="text-danger small mt-1">{{ form.categoria.errors }}</div>{% endif %}
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                <a href="{% url 'pedido:listar_clientes_pedido' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Salvar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // Máscara de CNPJ/CPF (copiada do seu 'form.html' de contratos)
+    const cnpjInput = document.getElementById('id_cnpj_mascara_pedido');
+    if (cnpjInput) {
+        cnpjInput.addEventListener('input', function (e) {
+            let valor = e.target.value.replace(/\D/g, '');
+            if (valor.length <= 11) { // CPF
+                valor = valor.substring(0, 11);
+                valor = valor.replace(/(\d{3})(\d)/, '$1.$2');
+                valor = valor.replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3');
+                valor = valor.replace(/(\d{3})\.(\d{3})\.(\d{3})(\d{1,2})/, '$1.$2.$3-$4');
+            } else { // CNPJ
+                valor = valor.substring(0, 14);
+                valor = valor.replace(/^(\d{2})(\d)/, '$1.$2');
+                valor = valor.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                valor = valor.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                valor = valor.replace(/(\d{4})(\d)/, '$1-$2');
+            }
+            e.target.value = valor;
+        });
+    }
+
+    // Máscara de Telefone ( (00) 00000-0000 )
+    const telefoneInput = document.getElementById('id_telefone_mascara_pedido');
+    if (telefoneInput) {
+        telefoneInput.addEventListener('input', function (e) {
+            let valor = e.target.value.replace(/\D/g, '');
+            valor = valor.substring(0, 11); // Limita a 11 dígitos
+            
+            if (valor.length > 10) { // Celular (00) 00000-0000
+                valor = valor.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
+            } else if (valor.length > 6) { // Fixo (00) 0000-0000
+                valor = valor.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
+            } else if (valor.length > 2) {
+                valor = valor.replace(/^(\d{2})(\d{0,5}).*/, '($1) $2');
+            } else if (valor.length > 0) {
+                valor = valor.replace(/^(\d{0,2}).*/, '($1');
+            }
+            e.target.value = valor;
+        });
+    }
+});
+</script>
+{% endblock %}

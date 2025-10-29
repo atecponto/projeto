@@ -24,8 +24,8 @@
             <div class="list-group list-group-flush">
                 {% if user.is_authenticated %}
                 
-                <a href="{% url 'pedido:listar_pedidos' %}" class="list-group-item list-group-item-action bg-dark text-white">
-                    <i class="fas fa-pencil-alt me-2"></i>Pedido
+                <a href="{% url 'pedido:listar_clientes_pedido' %}" class="list-group-item list-group-item-action bg-dark text-white"> 
+                    <i class="fas fa-user-friends me-2"></i>Cliente 
                 </a>
                 
                 <a href="{% url 'pedido:listar_categorias_pedido' %}" class="list-group-item list-group-item-action bg-dark text-white">
@@ -92,5 +92,6 @@
             document.getElementById("wrapper").classList.toggle("toggled");
         });
     </script>
+    {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -1,14 +1,157 @@
-{% extends 'pedido/base_pedido.html' %}
+{% extends "pedido/base_pedido.html" %}
 
-{% block title %}Visão Geral de Pedidos{% endblock %}
+{% block title %}Lista de Clientes{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-container-sticky {
+        max-height: 65vh; /* Altura máxima da tabela (ajuste conforme necessário) */
+        overflow-y: auto;
+        position: relative;
+    }
+    .table-container-sticky thead th {
+        position: -webkit-sticky; /* Safari */
+        position: sticky;
+        top: 0; /* Fixa no topo da área de scroll */
+        z-index: 2;
+        background-color: #ffffff; /* Fundo branco para não ficar transparente */
+        border-bottom-width: 2px;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="card shadow-sm">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="m-0">Visão Geral de Pedidos</h5>
+        <h5 class="m-0">Lista de Clientes (Pedidos)</h5>
+        <a href="{% url 'pedido:criar_cliente_pedido' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Novo Cliente
+        </a>
     </div>
     <div class="card-body">
-        <p class="text-center">Bem-vindo à seção de Pedidos.</p>
+        <form method="get" class="row g-3 mb-4 p-3 border rounded bg-light align-items-end">
+            <div class="col-md-5">
+                <label for="buscaCnpjPedido" class="form-label">Buscar por CNPJ/CPF (ao vivo)</label>
+                <input type="text" id="buscaCnpjPedido" class="form-control" placeholder="Digite para buscar...">
+            </div>
+            <div class="col-md-5">
+                <label for="categoria" class="form-label">Filtrar por Categoria</label>
+                <select name="categoria" id="categoria" class="form-select" onchange="this.form.submit()">
+                    <option value="">Todas as Categorias</option>
+                    {% for cat in categorias %}
+                        <option value="{{ cat.id }}" {% if request.GET.categoria == cat.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cat.nome }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">Filtrar</button>
+            </div>
+        </form>
+
+        <div class="table-responsive table-container-sticky">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Nome / Empresa</th>
+                        <th>CNPJ / CPF</th>
+                        <th>Email</th>
+                        <th>Telefone</th>
+                        <th>Categoria</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaClientesPedido">
+                    {% for cliente in page_obj %}
+                    <tr>
+                        <td>{{ cliente.nome }}</td>
+                        <td class="cnpj-col-pedido">{{ cliente.cnpj }}</td>
+                        <td>{{ cliente.email|default:"-" }}</td>
+                        <td class="telefone-col-pedido">{{ cliente.telefone|default:"-" }}</td>
+                        <td>{{ cliente.categoria.nome|default:"-" }}</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'pedido:editar_cliente_pedido' cliente.pk %}" class="btn btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'pedido:excluir_cliente_pedido' cliente.pk %}" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center">Nenhum cliente encontrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        {% include 'partials/pagination.html' %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Função de busca ao vivo por CNPJ
+    const buscaInput = document.getElementById('buscaCnpjPedido');
+    const tabelaBody = document.getElementById('tabelaClientesPedido');
+    const linhasTabela = tabelaBody.getElementsByTagName('tr');
+
+    if (buscaInput) {
+        buscaInput.addEventListener('keyup', function() {
+            // Remove . - / da busca
+            const termoBusca = this.value.replace(/[\.\-\/]/g, '').toUpperCase();
+            for (let i = 0; i < linhasTabela.length; i++) {
+                const linha = linhasTabela[i];
+                // Busca na coluna com a classe 'cnpj-col-pedido'
+                const celulaCnpj = linha.querySelector('.cnpj-col-pedido');
+                if (celulaCnpj) {
+                    const textoCelula = celulaCnpj.textContent || celulaCnpj.innerText;
+                    // Remove . - / do texto da célula
+                    const textoCelulaLimpo = textoCelula.replace(/[\.\-\/]/g, '').toUpperCase();
+                    if (textoCelulaLimpo.includes(termoBusca)) {
+                        linha.style.display = '';
+                    } else {
+                        linha.style.display = 'none';
+                    }
+                }
+            }
+        });
+    }
+    
+    // --- Funções de Formatação (para exibir bonito na tabela) ---
+
+    // Formata CNPJ/CPF (copiado do seu 'lista.html' de contratos)
+    function formatarDocumento(celula) {
+        let valor = celula.textContent.replace(/\D/g, ''); 
+        if (valor.length === 11) {
+            valor = valor.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            celula.textContent = valor;
+        } else if (valor.length === 14) {
+            valor = valor.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, '$1.$2.$3/$4-$5');
+            celula.textContent = valor;
+        }
+    }
+    document.querySelectorAll('.cnpj-col-pedido').forEach(formatarDocumento);
+
+    // Formata Telefone ( (__) _____-____ )
+    function formatarTelefone(celula) {
+        let valor = celula.textContent.replace(/\D/g, '');
+        if (valor.length === 11) {
+            valor = valor.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+            celula.textContent = valor;
+        } else if (valor.length === 10) {
+            valor = valor.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+            celula.textContent = valor;
+        }
+    }
+    document.querySelectorAll('.telefone-col-pedido').forEach(formatarTelefone);
+});
+</script>
 {% endblock %}
