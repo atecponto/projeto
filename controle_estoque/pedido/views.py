@@ -133,7 +133,7 @@ def listar_clientes_pedido(request):
         'categorias': CategoriaPedido.objects.all(), 
         'request': request, 
     }
-    # ATUALIZADO: Aponta para 'lista.html'
+
     return render(request, 'pedido/cliente/lista.html', context) 
 
 @login_required
@@ -154,7 +154,7 @@ def criar_cliente_pedido(request):
         'form': form,
         'titulo': 'Novo Cliente'
     }
-    # ATUALIZADO: Aponta para 'form.html'
+
     return render(request, 'pedido/cliente/form.html', context) 
 
 @login_required
@@ -176,7 +176,7 @@ def editar_cliente_pedido(request, pk):
         'form': form,
         'titulo': f'Editando Cliente: {cliente.nome}'
     }
-    # ATUALIZADO: Aponta para 'form.html'
+
     return render(request, 'pedido/cliente/form.html', context) 
 
 @login_required
@@ -198,5 +198,5 @@ def excluir_cliente_pedido(request, pk):
     context = {
         'cliente': cliente,
     }
-    # ATUALIZADO: Aponta para 'excluir.html'
+
     return render(request, 'pedido/cliente/excluir.html', context)

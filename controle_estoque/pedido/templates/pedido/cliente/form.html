@@ -45,11 +45,59 @@
                     {% if form.contato.errors %}<div class="text-danger small mt-1">{{ form.contato.errors }}</div>{% endif %}
                 </div>
             </div>
+
+            <hr> 
+            <h6 class="mb-3">Endereço</h6>
+            <div class="row">
+                <div class="col-md-9 mb-3">
+                    <label for="{{ form.endereco.id_for_label }}" class="form-label"><strong>Endereço:</strong></label>
+                    {{ form.endereco }}
+                    {% if form.endereco.errors %}<div class="text-danger small mt-1">{{ form.endereco.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label for="{{ form.cep.id_for_label }}" class="form-label"><strong>CEP:</strong></label>
+                    {{ form.cep }}
+                    {% if form.cep.errors %}<div class="text-danger small mt-1">{{ form.cep.errors }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-8 mb-3">
+                    <label for="{{ form.cidade.id_for_label }}" class="form-label"><strong>Cidade:</strong></label>
+                    {{ form.cidade }}
+                    {% if form.cidade.errors %}<div class="text-danger small mt-1">{{ form.cidade.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.estado.id_for_label }}" class="form-label"><strong>Estado (UF):</strong></label>
+                    {{ form.estado }}
+                    {% if form.estado.errors %}<div class="text-danger small mt-1">{{ form.estado.errors }}</div>{% endif %}
+                </div>
+            </div>
             
+            <hr> 
+
+            <div class="row">
+                 <div class="col-md-6 mb-3">
+                     <label for="{{ form.categoria.id_for_label }}" class="form-label"><strong>Categoria do Pedido:</strong></label> 
+                     {{ form.categoria }}
+                     {% if form.categoria.errors %}<div class="text-danger small mt-1">{{ form.categoria.errors }}</div>{% endif %}
+                 </div>
+                 <div class="col-md-6 mb-3">
+                     <label for="{{ form.tecnico.id_for_label }}" class="form-label"><strong>Técnico Responsável:</strong></label> 
+                     {{ form.tecnico }}
+                     {% if form.tecnico.errors %}<div class="text-danger small mt-1">{{ form.tecnico.errors }}</div>{% endif %}
+                 </div>
+            </div>
             <div class="mb-3">
-                <label for="{{ form.categoria.id_for_label }}" class="form-label"><strong>Categoria Padrão (Opcional):</strong></label>
-                {{ form.categoria }}
-                {% if form.categoria.errors %}<div class="text-danger small mt-1">{{ form.categoria.errors }}</div>{% endif %}
+                 <label for="{{ form.descricao_pedido.id_for_label }}" class="form-label"><strong>Descrição do Pedido:</strong></label>
+                 {{ form.descricao_pedido }}
+                 {% if form.descricao_pedido.errors %}<div class="text-danger small mt-1">{{ form.descricao_pedido.errors }}</div>{% endif %}
+             </div>
+            <div class="row">
+                 <div class="col-md-4 mb-3">
+                     <label for="{{ form.valor_pedido.id_for_label }}" class="form-label"><strong>Valor do Pedido:</strong></label>
+                     {{ form.valor_pedido }}
+                     {% if form.valor_pedido.errors %}<div class="text-danger small mt-1">{{ form.valor_pedido.errors }}</div>{% endif %}
+                 </div>
             </div>
 
             <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
@@ -68,10 +116,9 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    
-    // Máscara de CNPJ/CPF (copiada do seu 'form.html' de contratos)
+    // ... (Máscara de CNPJ/CPF existente) ...
     const cnpjInput = document.getElementById('id_cnpj_mascara_pedido');
-    if (cnpjInput) {
+    if (cnpjInput) { /* ... (código da máscara) ... */ 
         cnpjInput.addEventListener('input', function (e) {
             let valor = e.target.value.replace(/\D/g, '');
             if (valor.length <= 11) { // CPF
@@ -89,22 +136,34 @@ document.addEventListener('DOMContentLoaded', function() {
             e.target.value = valor;
         });
     }
-
-    // Máscara de Telefone ( (00) 00000-0000 )
+    // ... (Máscara de Telefone existente) ...
     const telefoneInput = document.getElementById('id_telefone_mascara_pedido');
-    if (telefoneInput) {
+    if (telefoneInput) { /* ... (código da máscara) ... */ 
         telefoneInput.addEventListener('input', function (e) {
             let valor = e.target.value.replace(/\D/g, '');
-            valor = valor.substring(0, 11); // Limita a 11 dígitos
-            
-            if (valor.length > 10) { // Celular (00) 00000-0000
+            valor = valor.substring(0, 11); 
+            if (valor.length > 10) { 
                 valor = valor.replace(/^(\d{2})(\d{5})(\d{4}).*/, '($1) $2-$3');
-            } else if (valor.length > 6) { // Fixo (00) 0000-0000
+            } else if (valor.length > 6) { 
                 valor = valor.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, '($1) $2-$3');
             } else if (valor.length > 2) {
                 valor = valor.replace(/^(\d{2})(\d{0,5}).*/, '($1) $2');
             } else if (valor.length > 0) {
                 valor = valor.replace(/^(\d{0,2}).*/, '($1');
+            }
+            e.target.value = valor;
+        });
+    }
+    // ... (Máscara de CEP existente) ...
+    const cepInput = document.getElementById('id_cep_mascara_pedido');
+    if (cepInput) { /* ... (código da máscara) ... */ 
+        cepInput.addEventListener('input', function (e) {
+            let valor = e.target.value.replace(/\D/g, ''); 
+            valor = valor.substring(0, 8); 
+            if (valor.length > 5) {
+                valor = valor.replace(/^(\d{5})(\d{1,3}).*/, '$1-$2');
+            } else if (valor.length > 0) {
+                valor = valor.replace(/^(\d*).*/, '$1');
             }
             e.target.value = valor;
         });
