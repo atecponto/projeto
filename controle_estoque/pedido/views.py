@@ -1,4 +1,3 @@
-# No topo do arquivo, adicione estes imports
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -118,12 +117,22 @@ def listar_clientes_pedido(request):
     """
     Lista, busca (JS) e filtra os Clientes (do app Pedido).
     """
-    clientes_list = ClientePedido.objects.select_related('categoria').all()
+    # Adiciona 'usuario_criador' ao select_related para otimizar
+    clientes_list = ClientePedido.objects.select_related('categoria', 'usuario_criador').all()
     
+    # --- LÓGICA DE PERMISSÃO ---
+    # Se o usuário NÃO for superusuário, filtre a lista
+    # para mostrar apenas os registros criados por ele.
+    if not request.user.is_superuser:
+        clientes_list = clientes_list.filter(usuario_criador=request.user)
+    # ----------------------------
+    
+    # Filtro por Categoria (Lógica existente)
     categoria_id = request.GET.get('categoria')
     if categoria_id:
         clientes_list = clientes_list.filter(categoria_id=categoria_id)
         
+    # Paginação (Lógica existente)
     paginator = Paginator(clientes_list, 15) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -133,7 +142,6 @@ def listar_clientes_pedido(request):
         'categorias': CategoriaPedido.objects.all(), 
         'request': request, 
     }
-
     return render(request, 'pedido/cliente/lista.html', context) 
 
 @login_required
@@ -144,7 +152,14 @@ def criar_cliente_pedido(request):
     if request.method == 'POST':
         form = ClientePedidoForm(request.POST)
         if form.is_valid():
-            form.save()
+            # --- LÓGICA DE PROPRIEDADE ---
+            # 1. Não salve no banco ainda
+            novo_pedido = form.save(commit=False) 
+            # 2. Defina o usuário logado como o criador
+            novo_pedido.usuario_criador = request.user 
+            # 3. Agora salve no banco
+            novo_pedido.save() 
+            # -----------------------------
             messages.success(request, 'Cliente cadastrado com sucesso!')
             return redirect('pedido:listar_clientes_pedido')
     else:
@@ -154,7 +169,6 @@ def criar_cliente_pedido(request):
         'form': form,
         'titulo': 'Novo Cliente'
     }
-
     return render(request, 'pedido/cliente/form.html', context) 
 
 @login_required
@@ -163,6 +177,14 @@ def editar_cliente_pedido(request, pk):
     Edita um Cliente (do app Pedido) existente.
     """
     cliente = get_object_or_404(ClientePedido, pk=pk)
+
+    # --- CHECAGEM DE SEGURANÇA ---
+    # Se não for superusuário E não for o dono do registro
+    if not request.user.is_superuser and cliente.usuario_criador != request.user:
+        messages.error(request, 'Você não tem permissão para editar este registro.')
+        return redirect('pedido:listar_clientes_pedido')
+    # -----------------------------
+
     if request.method == 'POST':
         form = ClientePedidoForm(request.POST, instance=cliente)
         if form.is_valid():
@@ -176,7 +198,6 @@ def editar_cliente_pedido(request, pk):
         'form': form,
         'titulo': f'Editando Cliente: {cliente.nome}'
     }
-
     return render(request, 'pedido/cliente/form.html', context) 
 
 @login_required
@@ -186,6 +207,13 @@ def excluir_cliente_pedido(request, pk):
     """
     cliente = get_object_or_404(ClientePedido, pk=pk)
     
+    # --- CHECAGEM DE SEGURANÇA ---
+    # Se não for superusuário E não for o dono do registro
+    if not request.user.is_superuser and cliente.usuario_criador != request.user:
+        messages.error(request, 'Você não tem permissão para excluir este registro.')
+        return redirect('pedido:listar_clientes_pedido')
+    # -----------------------------
+
     if request.method == 'POST':
         try:
             nome_cliente = cliente.nome
@@ -198,5 +226,4 @@ def excluir_cliente_pedido(request, pk):
     context = {
         'cliente': cliente,
     }
-
     return render(request, 'pedido/cliente/excluir.html', context)

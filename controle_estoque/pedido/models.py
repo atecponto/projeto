@@ -1,6 +1,7 @@
 from django.db import models
 from decimal import Decimal
 from contratos.models import Tecnico
+from django.conf import settings
 
 class CategoriaPedido(models.Model):
     nome = models.CharField(max_length=100, unique=True)
@@ -15,6 +16,14 @@ class CategoriaPedido(models.Model):
         return self.nome
     
 class ClientePedido(models.Model):
+    usuario_criador = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.SET_NULL, # Se o usuário for deletado, o campo fica nulo
+        null=True, 
+        blank=True,
+        verbose_name="Usuário Criador"
+    )
+
     nome = models.CharField(max_length=200, verbose_name="Nome/Empresa")
     cnpj = models.CharField(max_length=18, verbose_name="CNPJ/CPF")
     email = models.EmailField(max_length=254, blank=True, null=True)
