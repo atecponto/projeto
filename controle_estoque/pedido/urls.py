@@ -20,4 +20,6 @@ urlpatterns = [
     path('clientes/excluir/<int:pk>/', views.excluir_cliente_pedido, name='excluir_cliente_pedido'),
 
     path('clientes/pdf/', views.gerar_pdf_pedidos, name='gerar_pdf_pedidos'),
+    path('clientes/excel/', views.gerar_excel_pedidos, name='gerar_excel_pedidos'),
+    
 ]

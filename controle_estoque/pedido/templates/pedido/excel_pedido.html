@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8"> </head>
+<body>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Nome / Empresa</th>
+                <th>CNPJ / CPF</th>
+                <th>Data de Cadastro</th>
+                <th>Categoria</th>
+                <th>Valor</th>
+                {% if user.is_superuser and not filter_form.cleaned_data.tecnico %}
+                <th>Técnico</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for cliente in clientes %}
+            <tr>
+                <td>{{ cliente.nome }}</td>
+                <td style="mso-number-format:'\@'">{{ cliente.cnpj }}</td>
+                <td>{{ cliente.data_criacao|date:"d/m/Y" }}</td>
+                <td>{{ cliente.categoria.nome|default:"-" }}</td>
+                <td>{{ cliente.valor_pedido|floatformat:2|default:"0.00" }}</td>
+                {% if user.is_superuser and not filter_form.cleaned_data.tecnico %}
+                <td>{{ cliente.tecnico.nome|default:"-" }}</td>
+                {% endif %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td {% if user.is_superuser and not filter_form.cleaned_data.tecnico %}colspan="6"{% else %}colspan="5"{% endif %} style="text-align: center;">
+                    Nenhum pedido encontrado.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

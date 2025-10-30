@@ -9,6 +9,7 @@ from datetime import datetime, time
 from django.http import HttpResponse
 from django.utils import timezone
 from inventario.utils import render_to_pdf
+from django.template.loader import render_to_string
 
 @login_required
 def listar_pedidos(request):
@@ -314,3 +315,50 @@ def gerar_pdf_pedidos(request):
     
     messages.error(request, "Ocorreu um erro ao gerar o PDF.")
     return redirect('pedido:listar_clientes_pedido')
+
+@login_required
+def gerar_excel_pedidos(request):
+    """
+    Gera um XLS (HTML formatado) da lista de pedidos filtrada.
+    """
+    # 1. Lógica de filtro (idêntica à 'gerar_pdf_pedidos')
+    clientes_list = ClientePedido.objects.select_related('categoria', 'usuario_criador', 'tecnico').all()
+    
+    if not request.user.is_superuser:
+        clientes_list = clientes_list.filter(usuario_criador=request.user)
+    
+    filter_form = ClientePedidoFilterForm(request.GET or None)
+    
+    if filter_form.is_valid():
+        categoria = filter_form.cleaned_data.get('categoria')
+        if categoria:
+            clientes_list = clientes_list.filter(categoria=categoria)
+        
+        if request.user.is_superuser:
+            tecnico = filter_form.cleaned_data.get('tecnico')
+            if tecnico:
+                clientes_list = clientes_list.filter(tecnico=tecnico)
+        
+        if filter_form.cleaned_data.get('filtrar_por_data'):
+            data_inicio = filter_form.cleaned_data.get('data_inicio')
+            data_fim = filter_form.cleaned_data.get('data_fim')
+            if data_inicio and data_fim:
+                data_fim_com_hora = datetime.combine(data_fim, time.max)
+                clientes_list = clientes_list.filter(data_criacao__range=[data_inicio, data_fim_com_hora])
+
+    # 2. Prepara o contexto (idêntico ao PDF)
+    context = {
+        'clientes': clientes_list,
+        'filter_form': filter_form, 
+        'user': request.user
+    }
+    
+    # 3. RENDERIZA O HTML e define o Content-Type para Excel
+    response = HttpResponse(content_type='application/vnd.ms-excel')
+    filename = f"relatorio_pedidos_{timezone.now().strftime('%Y%m%d')}.xls"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    # Renderiza o template de excel
+    html = render_to_string('pedido/excel_pedido.html', context)
+    response.write(html)
+    return response

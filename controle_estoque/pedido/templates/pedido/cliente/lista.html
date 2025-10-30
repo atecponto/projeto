@@ -118,6 +118,12 @@
                        style="width: 50px;">
                         <i class="fas fa-file-pdf"></i>
                     </a>
+                    <a href="{% url 'pedido:gerar_excel_pedidos' %}?{{ request.GET.urlencode }}" 
+                       class="btn btn-success ms-1" title="Gerar Excel" 
+                       target="_blank"
+                       style="width: 50px;">
+                        <i class="fas fa-file-excel"></i>
+                    </a>
                 </div>
             </div>
             {% if filter_form.non_field_errors %}
