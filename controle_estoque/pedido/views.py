@@ -117,43 +117,49 @@ def listar_clientes_pedido(request):
     """
     Lista, busca (JS) e filtra os Clientes (do app Pedido).
     """
-    # Query base (sem alterações)
-    clientes_list = ClientePedido.objects.select_related('categoria', 'usuario_criador').all()
+    # Adicionado 'tecnico' ao select_related
+    clientes_list = ClientePedido.objects.select_related('categoria', 'usuario_criador', 'tecnico').all()
     
-    # Lógica de permissão (sem alterações)
+    # Lógica de permissão (Existente)
     if not request.user.is_superuser:
         clientes_list = clientes_list.filter(usuario_criador=request.user)
     
-    # --- LÓGICA DE FILTRO ATUALIZADA ---
-    # Instancia o formulário de filtro com os dados do GET
+    # Lógica de Filtro com o Form
     filter_form = ClientePedidoFilterForm(request.GET or None)
 
-    # Aplica os filtros se o formulário for válido (e tiver dados)
+    # Esconde o campo 'tecnico' do formulário se o usuário não for superuser
+    if not request.user.is_superuser:
+        if 'tecnico' in filter_form.fields:
+            del filter_form.fields['tecnico']
+
     if filter_form.is_valid():
         categoria = filter_form.cleaned_data.get('categoria')
         if categoria:
             clientes_list = clientes_list.filter(categoria=categoria)
         
-        # Filtro de Data (novo)
+        # Só filtra por técnico se o usuário for superuser
+        if request.user.is_superuser:
+            tecnico = filter_form.cleaned_data.get('tecnico')
+            if tecnico:
+                clientes_list = clientes_list.filter(tecnico=tecnico)
+        
+        # Filtro de Data 
         if filter_form.cleaned_data.get('filtrar_por_data'):
             data_inicio = filter_form.cleaned_data.get('data_inicio')
             data_fim = filter_form.cleaned_data.get('data_fim')
             
             if data_inicio and data_fim:
-                # Converte a data final para o fim do dia (23:59:59)
                 data_fim_com_hora = datetime.combine(data_fim, time.max)
-                # Filtra pelo campo 'data_criacao' no range
                 clientes_list = clientes_list.filter(data_criacao__range=[data_inicio, data_fim_com_hora])
-    # ------------------------------------
         
-    # Paginação (sem alterações)
+    # Paginação (Existente)
     paginator = Paginator(clientes_list, 15) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     context = {
         'page_obj': page_obj,
-        'filter_form': filter_form,
+        'filter_form': filter_form, # Passa o formulário para o template
         'request': request, 
     }
     return render(request, 'pedido/cliente/lista.html', context)

@@ -30,13 +30,13 @@ class ClientePedidoForm(forms.ModelForm):
         # Aplica classes Bootstrap e IDs
         for field_name, field in self.fields.items():
             if field_name == 'categoria':
-                 field.label_attrs = {'style': 'font-weight: bold;'}
+                   field.label_attrs = {'style': 'font-weight: bold;'}
             if isinstance(field.widget, forms.Select):
                 field.widget.attrs.update({'class': 'form-select'})
             elif isinstance(field.widget, (forms.NumberInput, forms.Textarea)): 
                  field.widget.attrs.update({'class': 'form-control'})
                  if isinstance(field.widget, forms.NumberInput):
-                      field.widget.attrs.update({'step': '0.01'})
+                       field.widget.attrs.update({'step': '0.01'})
             else:
                 field.widget.attrs.update({'class': 'form-control'})
         
@@ -70,7 +70,17 @@ class ClientePedidoFilterForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
     
-    # Filtro de Data 
+    # --- NOVO CAMPO ADICIONADO ---
+    tecnico = forms.ModelChoiceField(
+        queryset=Tecnico.objects.all(),
+        required=False,
+        label='Filtrar por Técnico',
+        empty_label="Todos os Técnicos",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    # ----------------------------
+
+    # Filtro de Data (Existente)
     filtrar_por_data = forms.BooleanField(
         required=False, 
         label="Período", 
@@ -78,14 +88,14 @@ class ClientePedidoFilterForm(forms.Form):
     )
     data_inicio = forms.DateField(
         required=False, 
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}) # Placeholder 'dd/mm/aaaa' é automático do 'date'
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
     data_fim = forms.DateField(
         required=False, 
-        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}) # Placeholder 'dd/mm/aaaa' é automático
+        widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
 
-    # Validação (copiada do seu form de Renovação)
+    # Validação (Existente)
     def clean(self):
         cleaned_data = super().clean()
         filtrar = cleaned_data.get('filtrar_por_data')
