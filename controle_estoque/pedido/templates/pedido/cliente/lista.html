@@ -26,10 +26,29 @@
         .printable-modal .modal-footer { display: none; }
     }
     
-    /* --- ESTILO "CLEAN" DO FILTRO DE DATA REMOVIDO --- */
-    /* Não precisamos mais do .clean-filter-group */
+    /* Estilo "clean" para o filtro de data (Layout de image_bb4c7e.png) */
+    .clean-filter-group {
+        border: 1px solid #dee2e6;
+        border-radius: .375rem;
+        overflow: hidden;
+    }
+    .clean-filter-group .form-control {
+        border: none;
+        box-shadow: none !important;
+    }
+    .clean-filter-group .form-check-input {
+        margin-top: 0.1em;
+    }
+    .clean-filter-group > .input-group-text,
+    .clean-filter-group > .form-control {
+        background-color: #fff;
+    }
+    .clean-filter-group > .input-group-text {
+        border: none;
+        border-right: 1px solid #dee2e6; /* Linha divisória */
+    }
     
-    /* Estilo "clean" para os totais financeiros (Existente) */
+    /* Estilo "clean" para os novos totais financeiros */
     .financial-summary-wrapper {
         font-size: 0.9rem;
         color: #333;
@@ -55,59 +74,67 @@
         
         <form method="get" class="row g-3 mb-4 p-3 border rounded bg-light align-items-end">
             
-            <div class="col-md-5">
+            <div class="col-md-4">
                 <label for="buscaCnpjPedido" class="form-label">Buscar por CNPJ/CPF (ao vivo)</label>
                 <input type="text" id="buscaCnpjPedido" class="form-control" placeholder="Digite para buscar...">
             </div>
             
-            <div class="col-md-7">
-                <label class="form-label d-block">Período de Cadastro</label> 
-                <div class="row g-2 align-items-center">
-                    <div class="col-auto">
-                        <div class="form-check">
-                            {{ filter_form.filtrar_por_data }}
-                            <label for="{{ filter_form.filtrar_por_data.id_for_label }}" class="form-check-label">{{ filter_form.filtrar_por_data.label }}</label>
-                        </div>
-                    </div>
-                    <div class="col">
-                        {{ filter_form.data_inicio }}
-                    </div>
-                    <div class="col">
-                        {{ filter_form.data_fim }}
-                    </div>
-                </div>
-                {% if filter_form.non_field_errors %}
-                    <div class="text-danger small mt-1">{{ filter_form.non_field_errors|first }}</div>
-                {% endif %}
-            </div>
-
             {% if user.is_superuser %}
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label for="{{ filter_form.tecnico.id_for_label }}" class="form-label">{{ filter_form.tecnico.label }}</label>
                     {{ filter_form.tecnico }}
                 </div>
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label for="{{ filter_form.categoria.id_for_label }}" class="form-label">{{ filter_form.categoria.label }}</label>
                     {{ filter_form.categoria }}
                 </div>
             {% else %}
-                <div class="col-md-10">
+                <div class="col-md-8">
                     <label for="{{ filter_form.categoria.id_for_label }}" class="form-label">{{ filter_form.categoria.label }}</label>
                     {{ filter_form.categoria }}
                 </div>
             {% endif %}
 
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+            <div class="col-md-9">
+                <label class="form-label d-block">Período de Cadastro</label> 
+                <div class="input-group clean-filter-group">
+                    <div class="input-group-text">
+                        {{ filter_form.filtrar_por_data }}
+                        <label for="{{ filter_form.filtrar_por_data.id_for_label }}" class="ms-2 mb-0">{{ filter_form.filtrar_por_data.label }}</label>
+                    </div>
+                    {{ filter_form.data_inicio }}
+                    {{ filter_form.data_fim }}
+                </div>
             </div>
+
+            <div class="col-md-3">
+                <label class="form-label d-block">&nbsp;</label> 
+                <div class="d-flex">
+                    <button type="submit" class="btn btn-primary w-100 me-2">Filtrar</button>
+                    <a href="{% url 'pedido:gerar_pdf_pedidos' %}?{{ request.GET.urlencode }}" 
+                       class="btn btn-secondary" 
+                       title="Gerar PDF" 
+                       target="_blank"
+                       style="width: 50px;">
+                        <i class="fas fa-file-pdf"></i>
+                    </a>
+                </div>
+            </div>
+            {% if filter_form.non_field_errors %}
+                <div class="col-12">
+                    <div class="text-danger small mt-1">{{ filter_form.non_field_errors|first }}</div>
+                </div>
+            {% endif %}
             
         </form>
+        
         <div class="row mb-3 align-items-center financial-summary-wrapper">
             <div class="col-md-4">
                 <h6 class="mb-0">
                     {{ total_clientes_encontrados }} cliente(s) encontrado(s).
                 </h6>
             </div>
+            
             <div class="col-md-8 text-md-end">
                 {% for item in financial_summary %}
                     <span class="badge bg-light text-dark border">
@@ -116,7 +143,7 @@
                 {% endfor %}
             </div>
         </div>
-
+        
         <div class="table-responsive table-container-sticky">
             <table class="table table-striped table-hover">
                 <thead>

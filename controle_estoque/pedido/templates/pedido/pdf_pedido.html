@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório de Pedidos</title>
+    <style>
+        /* Estilos básicos para o PDF (similar ao seu 'renovacao_pdf.html') */
+        @page { size: a4 portrait; margin: 1.5cm; }
+        body { font-family: "Helvetica", sans-serif; font-size: 9px; color: #333; }
+        
+        h1 { font-size: 16px; text-align: center; margin-bottom: 20px; }
+        
+        .header-info { border: 1px solid #eee; padding: 10px; margin-bottom: 15px; page-break-inside: avoid; }
+        .header-info h4 { font-size: 11px; margin-top: 0; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        
+        .summary-table { width: 100%; border-collapse: collapse; }
+        .summary-table td { border: none; padding: 3px; vertical-align: top; }
+        .summary-table .left-col { width: 60%; }
+        .summary-table .right-col { width: 40%; padding-left: 10px; border-left: 1px solid #eee; }
+
+        .financial-summary .badge { 
+            display: block; /* Faz cada item ficar em uma linha */
+            border: 1px solid #ccc; 
+            padding: 4px 6px; 
+            margin-bottom: 3px;
+            text-align: left;
+        }
+
+        /* Tabela de Pedidos */
+        .pedido-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .pedido-table th, .pedido-table td { 
+            border: 1px solid #ddd; 
+            padding: 5px; 
+            text-align: left; 
+            page-break-inside: avoid;
+        }
+        .pedido-table th { background-color: #f2f2f2; font-size: 10px; }
+        .pedido-table .col-valor { text-align: right; }
+
+        .footer { position: fixed; bottom: -40px; left: 0px; right: 0px; height: 50px; text-align: center; font-size: 8px; color: #777; }
+    </style>
+</head>
+<body>
+    <div class="footer">
+        Relatório gerado em {{ data_geracao|date:"d/m/Y H:i" }} | Página <pdf:pagenumber>
+    </div>
+
+    <h1>Relatório de Pedidos</h1>
+
+    <div class="header-info">
+        <table class="summary-table">
+            <tr>
+                <td class="left-col">
+                    <h4>Filtros Aplicados</h4>
+                    <strong>Período de Cadastro:</strong>
+                    {% if filter_form.data_inicio.value and filter_form.data_fim.value %}
+                        {{ filter_form.data_inicio.value|date:"d/m/Y" }} a {{ filter_form.data_fim.value|date:"d/m/Y" }}
+                    {% else %}
+                        Todos
+                    {% endif %}
+                    <br>
+                    <strong>Categoria:</strong>
+                    {{ filter_form.categoria.value|default:"Todas" }}
+                    <br>
+                    {% if user.is_superuser %}
+                    <strong>Técnico:</strong>
+                    {{ filter_form.tecnico.value|default:"Todos" }}
+                    {% endif %}
+                </td>
+                <td class="right-col financial-summary">
+                    <h4>Sumário Financeiro</h4>
+                    <strong>{{ total_clientes_encontrados }} pedido(s) encontrado(s).</strong>
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 5px 0;">
+                    {% for item in financial_summary %}
+                        <span class="badge">
+                            {{ item.categoria__nome }}: <strong>R$ {{ item.total_valor|floatformat:2|default:"0,00" }}</strong>
+                        </span>
+                    {% empty %}
+                        <span>Nenhum valor total encontrado.</span>
+                    {% endfor %}
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <table class="pedido-table">
+        <thead>
+            <tr>
+                <th>Nome / Empresa</th>
+                <th>CNPJ / CPF</th>
+                <th>Data de Cadastro</th>
+                <th>Categoria</th>
+                <th>Valor</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cliente in clientes %}
+            <tr>
+                <td>{{ cliente.nome }}</td>
+                <td>{{ cliente.cnpj }}</td>
+                <td>{{ cliente.data_criacao|date:"d/m/Y" }}</td>
+                <td>{{ cliente.categoria.nome|default:"-" }}</td>
+                <td class="col-valor">R$ {{ cliente.valor_pedido|floatformat:2|default:"0,00" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center;">Nenhum pedido encontrado para os filtros selecionados.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>

@@ -18,4 +18,6 @@ urlpatterns = [
     path('clientes/novo/', views.criar_cliente_pedido, name='criar_cliente_pedido'),
     path('clientes/editar/<int:pk>/', views.editar_cliente_pedido, name='editar_cliente_pedido'),
     path('clientes/excluir/<int:pk>/', views.excluir_cliente_pedido, name='excluir_cliente_pedido'),
+
+    path('clientes/pdf/', views.gerar_pdf_pedidos, name='gerar_pdf_pedidos'),
 ]

@@ -6,6 +6,9 @@ from .forms import CategoriaPedidoForm, ClientePedidoForm, ClientePedidoFilterFo
 from django.core.paginator import Paginator
 from django.db.models import ProtectedError, Count, Sum
 from datetime import datetime, time
+from django.http import HttpResponse
+from django.utils import timezone
+from inventario.utils import render_to_pdf
 
 @login_required
 def listar_pedidos(request):
@@ -67,7 +70,6 @@ def editar_categoria_pedido(request, pk):
         form = CategoriaPedidoForm(request.POST, instance=categoria)
         if form.is_valid():
             form.save()
-            messages.success(request, 'Categoria atualizada com sucesso!')
             return redirect('pedido:listar_categorias_pedido')
     else:
         form = CategoriaPedidoForm(instance=categoria)
@@ -244,3 +246,60 @@ def excluir_cliente_pedido(request, pk):
         'cliente': cliente,
     }
     return render(request, 'pedido/cliente/excluir.html', context)
+
+@login_required
+def gerar_pdf_pedidos(request):
+    """
+    Gera um PDF da lista de pedidos filtrada.
+    """
+    # 1. REPLICA EXATAMENTE A LÓGICA DE FILTRO DA 'listar_clientes_pedido'
+    clientes_list = ClientePedido.objects.select_related('categoria', 'usuario_criador', 'tecnico').all()
+    
+    if not request.user.is_superuser:
+        clientes_list = clientes_list.filter(usuario_criador=request.user)
+    
+    filter_form = ClientePedidoFilterForm(request.GET or None)
+    
+    if filter_form.is_valid():
+        categoria = filter_form.cleaned_data.get('categoria')
+        if categoria:
+            clientes_list = clientes_list.filter(categoria=categoria)
+        
+        if request.user.is_superuser:
+            tecnico = filter_form.cleaned_data.get('tecnico')
+            if tecnico:
+                clientes_list = clientes_list.filter(tecnico=tecnico)
+        
+        if filter_form.cleaned_data.get('filtrar_por_data'):
+            data_inicio = filter_form.cleaned_data.get('data_inicio')
+            data_fim = filter_form.cleaned_data.get('data_fim')
+            if data_inicio and data_fim:
+                data_fim_com_hora = datetime.combine(data_fim, time.max)
+                clientes_list = clientes_list.filter(data_criacao__range=[data_inicio, data_fim_com_hora])
+    
+    # 2. REPLICA O CÁLCULO DO SUMÁRIO FINANCEIRO
+    financial_summary = clientes_list.filter(categoria__nome__isnull=False) \
+                                  .values('categoria__nome') \
+                                  .annotate(total_valor=Sum('valor_pedido')) \
+                                  .order_by('categoria__nome')
+    
+    # 3. PREPARA O CONTEXTO PARA O PDF
+    context = {
+        'clientes': clientes_list, # Passa a lista COMPLETA, não paginada
+        'filter_form': filter_form, 
+        'financial_summary': financial_summary,
+        'total_clientes_encontrados': clientes_list.count(),
+        'data_geracao': timezone.now(),
+        'user': request.user # Para a lógica 'if user.is_superuser' no PDF
+    }
+    
+    # 4. RENDERIZA O PDF
+    pdf = render_to_pdf('pedido/pdf_pedido.html', context)
+    if pdf:
+        response = HttpResponse(pdf, content_type='application/pdf')
+        filename = f"relatorio_pedidos_{timezone.now().strftime('%Y%m%d')}.pdf"
+        response['Content-Disposition'] = f'inline; filename="{filename}"'
+        return response
+    
+    messages.error(request, "Ocorreu um erro ao gerar o PDF.")
+    return redirect('pedido:listar_clientes_pedido')
