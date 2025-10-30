@@ -4,8 +4,7 @@ from django.contrib.auth.decorators import login_required
 from .models import CategoriaPedido, ClientePedido
 from .forms import CategoriaPedidoForm, ClientePedidoForm, ClientePedidoFilterForm
 from django.core.paginator import Paginator
-from django.db.models import ProtectedError
-from django.db.models import ProtectedError, Q
+from django.db.models import ProtectedError, Count, Sum
 from datetime import datetime, time
 
 @login_required
@@ -117,50 +116,54 @@ def listar_clientes_pedido(request):
     """
     Lista, busca (JS) e filtra os Clientes (do app Pedido).
     """
-    # Adicionado 'tecnico' ao select_related
     clientes_list = ClientePedido.objects.select_related('categoria', 'usuario_criador', 'tecnico').all()
     
-    # Lógica de permissão (Existente)
     if not request.user.is_superuser:
         clientes_list = clientes_list.filter(usuario_criador=request.user)
     
-    # Lógica de Filtro com o Form
     filter_form = ClientePedidoFilterForm(request.GET or None)
-
-    # Esconde o campo 'tecnico' do formulário se o usuário não for superuser
     if not request.user.is_superuser:
         if 'tecnico' in filter_form.fields:
             del filter_form.fields['tecnico']
 
+    # Aplica os filtros ANTES de calcular o sumário
     if filter_form.is_valid():
         categoria = filter_form.cleaned_data.get('categoria')
         if categoria:
             clientes_list = clientes_list.filter(categoria=categoria)
         
-        # Só filtra por técnico se o usuário for superuser
         if request.user.is_superuser:
             tecnico = filter_form.cleaned_data.get('tecnico')
             if tecnico:
                 clientes_list = clientes_list.filter(tecnico=tecnico)
         
-        # Filtro de Data 
         if filter_form.cleaned_data.get('filtrar_por_data'):
             data_inicio = filter_form.cleaned_data.get('data_inicio')
             data_fim = filter_form.cleaned_data.get('data_fim')
-            
             if data_inicio and data_fim:
                 data_fim_com_hora = datetime.combine(data_fim, time.max)
                 clientes_list = clientes_list.filter(data_criacao__range=[data_inicio, data_fim_com_hora])
+    
+    # --- NOVO SUMÁRIO FINANCEIRO (PÓS-FILTRO) ---
+    # Calcula a soma de 'valor_pedido' para cada categoria,
+    # baseado na lista já filtrada.
+    financial_summary = clientes_list.filter(categoria__nome__isnull=False) \
+                                  .values('categoria__nome') \
+                                  .annotate(total_valor=Sum('valor_pedido')) \
+                                  .order_by('categoria__nome')
+    # ---------------------------------------------
         
-    # Paginação (Existente)
+    # Paginação (agora usa a lista 100% filtrada)
     paginator = Paginator(clientes_list, 15) 
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     context = {
         'page_obj': page_obj,
-        'filter_form': filter_form, # Passa o formulário para o template
+        'filter_form': filter_form, 
         'request': request, 
+        'financial_summary': financial_summary, # <-- Passa o novo sumário
+        'total_clientes_encontrados': paginator.count # <-- Passa o total de clientes
     }
     return render(request, 'pedido/cliente/lista.html', context)
 
