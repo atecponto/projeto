@@ -252,7 +252,7 @@ def gerar_pdf_pedidos(request):
     """
     Gera um PDF da lista de pedidos filtrada.
     """
-    # 1. REPLICA EXATAMENTE A LÓGICA DE FILTRO DA 'listar_clientes_pedido'
+    # 1. Lógica de filtro (idêntica à sua view 'listar_clientes_pedido')
     clientes_list = ClientePedido.objects.select_related('categoria', 'usuario_criador', 'tecnico').all()
     
     if not request.user.is_superuser:
@@ -277,23 +277,34 @@ def gerar_pdf_pedidos(request):
                 data_fim_com_hora = datetime.combine(data_fim, time.max)
                 clientes_list = clientes_list.filter(data_criacao__range=[data_inicio, data_fim_com_hora])
     
-    # 2. REPLICA O CÁLCULO DO SUMÁRIO FINANCEIRO
+    # 2. Sumário Financeiro (Existente)
     financial_summary = clientes_list.filter(categoria__nome__isnull=False) \
                                   .values('categoria__nome') \
                                   .annotate(total_valor=Sum('valor_pedido')) \
                                   .order_by('categoria__nome')
+                                  
+    # --- 3. NOVO SUMÁRIO DE TÉCNICOS (como em image_d7d97a.png) ---
+    # Calcula a contagem por técnico (apenas se for superuser)
+    tecnico_summary = None
+    if request.user.is_superuser:
+        tecnico_summary = clientes_list.filter(tecnico__nome__isnull=False) \
+                                    .values('tecnico__nome') \
+                                    .annotate(total=Count('id')) \
+                                    .order_by('tecnico__nome')
+    # -----------------------------------------------------------
     
-    # 3. PREPARA O CONTEXTO PARA O PDF
+    # 4. Prepara o contexto para o PDF
     context = {
-        'clientes': clientes_list, # Passa a lista COMPLETA, não paginada
+        'clientes': clientes_list,
         'filter_form': filter_form, 
         'financial_summary': financial_summary,
+        'tecnico_summary': tecnico_summary, # <-- Passa o novo sumário
         'total_clientes_encontrados': clientes_list.count(),
         'data_geracao': timezone.now(),
-        'user': request.user # Para a lógica 'if user.is_superuser' no PDF
+        'user': request.user
     }
     
-    # 4. RENDERIZA O PDF
+    # 5. Renderiza o PDF (Existente)
     pdf = render_to_pdf('pedido/pdf_pedido.html', context)
     if pdf:
         response = HttpResponse(pdf, content_type='application/pdf')
