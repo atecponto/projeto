@@ -371,19 +371,35 @@ def gerar_excel_pedidos(request):
                 data_fim_com_hora = datetime.combine(data_fim, time.max)
                 clientes_list = clientes_list.filter(data_criacao__range=[data_inicio, data_fim_com_hora])
 
-    # 2. Prepara o contexto (idêntico ao PDF)
+    # 2. CALCULA OS MESMOS SUMÁRIOS DO PDF (NOVOS)
+    financial_summary = clientes_list.filter(categoria__nome__isnull=False) \
+                                  .values('categoria__nome') \
+                                  .annotate(total_valor=Sum('valor_pedido')) \
+                                  .order_by('categoria__nome')
+                                  
+    tecnico_summary = None
+    if request.user.is_superuser:
+        tecnico_summary = clientes_list.filter(tecnico__nome__isnull=False) \
+                                    .values('tecnico__nome') \
+                                    .annotate(total=Count('id')) \
+                                    .order_by('tecnico__nome')
+    
+    # 3. ATUALIZA O CONTEXTO com os novos dados
     context = {
         'clientes': clientes_list,
         'filter_form': filter_form, 
+        'financial_summary': financial_summary,
+        'tecnico_summary': tecnico_summary, 
+        'total_clientes_encontrados': clientes_list.count(),
+        'data_geracao': timezone.now(),
         'user': request.user
     }
     
-    # 3. RENDERIZA O HTML e define o Content-Type para Excel
+    # 4. RENDERIZA O HTML e define o Content-Type para Excel
     response = HttpResponse(content_type='application/vnd.ms-excel')
     filename = f"relatorio_pedidos_{timezone.now().strftime('%Y%m%d')}.xls"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     
-    # Renderiza o template de excel
     html = render_to_string('pedido/excel_pedido.html', context)
     response.write(html)
     return response

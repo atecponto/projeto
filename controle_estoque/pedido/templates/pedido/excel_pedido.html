@@ -3,6 +3,51 @@
 <head>
     <meta charset="UTF-8"> </head>
 <body>
+    
+    <table border="0" style="width:100%; margin-bottom: 25px; font-family: sans-serif; font-size: 10px;">
+        <tr>
+            <td style="width:50%; vertical-align:top;">
+                <p style="margin-bottom: 5px;">
+                    <strong>Período de Cadastro:</strong>
+                    {% if filter_form.cleaned_data.filtrar_por_data and filter_form.cleaned_data.data_inicio %}
+                        {{ filter_form.cleaned_data.data_inicio|date:"d/m/Y" }} a {{ filter_form.cleaned_data.data_fim|date:"d/m/Y" }}
+                    {% else %}
+                        Todo o período
+                    {% endif %}
+                </p>
+                <p style="margin-bottom: 5px;">
+                    <strong>Data de Geração:</strong>
+                    {{ data_geracao|date:"d/m/Y H:i" }}
+                </p>
+                <p style="margin-top: 10px; margin-bottom: 5px;">
+                    <strong>Total de Pedidos Encontrados:</strong> {{ total_clientes_encontrados }}
+                </p>
+            </td>
+            
+            <td style="width:50%; vertical-align:top; padding-left: 15px; border-left: 1px solid #eeeeee;">
+                <h4 style="font-size: 11px; margin-top: 0; margin-bottom: 5px;">Total por Categoria:</h4>
+                {% for item in financial_summary %}
+                    <p style="margin: 5px 0;">
+                        {{ item.categoria__nome }}: <strong>R$ {{ item.total_valor|floatformat:2|default:"0,00" }}</strong>
+                    </p>
+                {% empty %}
+                    <p style="margin: 5px 0;">Nenhum valor encontrado.</p>
+                {% endfor %}
+
+                {% if user.is_superuser and tecnico_summary %}
+                <h4 style="font-size: 11px; margin-top: 15px; margin-bottom: 5px;">Pedidos por Técnico:</h4>
+                {% for item in tecnico_summary %}
+                    <p style="margin: 5px 0;">
+                        {{ item.tecnico__nome }}: <strong>{{ item.total }}</strong>
+                    </p>
+                {% endfor %}
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+
+    <br>
+
     <table border="1">
         <thead>
             <tr>
