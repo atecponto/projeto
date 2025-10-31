@@ -1,7 +1,11 @@
 {% extends "pedido/base_pedido.html" %}
+
 {% load static %} {% load i18n %} {% block title %}Lista de Pedidos{% endblock %}
 
+
+
 {% block extra_css %}
+
 <style>
     .table-container-sticky {
         max-height: 65vh; 
@@ -16,68 +20,49 @@
         background-color: #ffffff; 
         border-bottom-width: 2px;
     }
-    
-    /* --- INÍCIO DO NOVO CSS DE IMPRESSÃO (CORRIGIDO) --- */
+
     @media print {
-        /* Esconde a barra lateral e a navbar superior */
         #sidebar-wrapper, #page-content-wrapper > .navbar {
             display: none;
         }
-        
-        /* Esconde o conteúdo principal (o card da lista) */
         #page-content-wrapper > .container-fluid > .card {
             display: none;
         }
-        
-        /* Esconde o backdrop (fundo cinza) do modal */
         .modal-backdrop {
             display: none !important;
         }
-
-        /* Faz o modal ativo preencher a tela de impressão */
         .modal {
             position: relative !important; 
-            display: block !important; /* Força a exibição do modal que está ativo */
+            display: block !important; 
             opacity: 1 !important;
             width: 100%;
             height: 100%;
-            overflow: visible !important; /* Remove scrollbars internos */
+            overflow: visible !important; 
         }
-        
-        /* Garante que apenas o modal que está aberto (classe .show) seja impresso */
         .modal:not(.show) {
              display: none !important;
         }
-
         .modal-dialog {
             max-width: 100% !important;
             width: 100% !important;
             margin: 0 !important;
-            transform: none !important; /* Reseta qualquer transformação */
+            transform: none !important; 
         }
-        
         .modal-content {
             border: none !important;
             box-shadow: none !important;
         }
-        
-        /* Esconde os botões de fechar e do rodapé */
         .modal-header .btn-close,
         .modal-footer {
             display: none;
         }
-        
         .modal-body {
             overflow: visible !important;
         }
-        
-        /* Remove a rolagem da página que a imagem antiga mostrava */
         html, body {
             overflow: visible !important;
             height: auto !important;
         }
-
-        /* FORÇA O LAYOUT DE COLUNAS DO BOOTSTRAP A FUNCIONAR NA IMPRESSÃO */
         .modal-body .row {
             display: flex !important;
             flex-wrap: wrap !important;
@@ -86,16 +71,20 @@
             flex: 0 0 50% !important;
             max-width: 50% !important;
         }
+        .modal-body .col-md-12 {
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+        }
         .modal-body .col-auto {
             flex: 0 0 auto !important;
             width: auto !important;
         }
          .modal-body .col-7 {
-            flex: 0 0 auto !important; /* Ajuste para a linha de assinatura */
+            flex: 0 0 auto !important;
             width: 58.333333% !important;
         }
     }
-    /* --- FIM DO NOVO CSS DE IMPRESSÃO --- */
+    /* --- FIM DO CSS DE IMPRESSÃO --- */
     
     .financial-summary-wrapper {
         font-size: 0.9rem;
@@ -107,8 +96,42 @@
         font-weight: 500;
         font-size: 0.85rem;
     }
+
+
+    /* --- ESTILO ADICIONAL PARA REDUZIR ESPAÇAMENTO NO MODAL (AJUSTADO) --- */
+    .modal-body .info-block {
+        margin-bottom: 0.25rem; /* Espaço BEM menor entre os blocos */
+        padding-bottom: 0.25rem; 
+    }
+    .modal-body .info-block small {
+        margin-bottom: 0; /* Quase sem espaço */
+        font-size: 0.8rem;
+        line-height: 1.2;
+        display: block; /* Garante que o d-block funcione */
+    }
+    /* Ajusta o H5 e o texto principal para ficarem mais rentes ao label */
+    .modal-body .info-block h5, 
+    .modal-body .info-block span, 
+    .modal-body .info-block strong,
+    .modal-body .info-block div { /* Pega o div da descrição */
+        margin-top: 0;
+        margin-bottom: 0.1rem; 
+        line-height: 1.3;
+    }
+    .modal-body .info-block h5 {
+        font-size: 1.15rem; /* Um pouco maior que o texto normal */
+        display: inline-block;
+    }
+    
+    .modal-body hr {
+        margin-top: 0.5rem; /* Margem BEM menor no <hr> */
+        margin-bottom: 0.75rem;
+    }
+    /* --- FIM DO ESTILO --- */
+
 </style>
 {% endblock %}
+
 
 {% block content %}
 <div class="card shadow-sm">
@@ -143,25 +166,30 @@
                 </div>
             {% endif %}
 
-            <div class="col-md-5">
+            <div class="col-md-9">
                 <label class="form-label d-block">Período de Cadastro</label> 
-                <div class="row g-2 align-items-center">
+                
+                <div class="row gx-2 align-items-center">
+                    
                     <div class="col-auto">
                         <div class="form-check">
                             {{ filter_form.filtrar_por_data }}
-                            <label for="{{ filter_form.filtrar_por_data.id_for_label }}" class="form-check-label">{{ filter_form.filtrar_por_data.label }}</label>
+                            <label for="{{ filter_form.filtrar_por_data.id_for_label }}" class="form-check-label">
+                                Período
+                            </label>
                         </div>
                     </div>
-                    <div class="col">
+                    
+                    <div class="col-3">
                         {{ filter_form.data_inicio }}
                     </div>
-                    <div class="col">
+                    
+                    <div class="col-3">
                         {{ filter_form.data_fim }}
                     </div>
-                </div>
+                    </div>
             </div>
-
-            <div class="col-md-3 ms-md-auto">
+            <div class="col-md-3">
                 <label class="form-label d-block">&nbsp;</label> 
                 <div class="d-flex">
                     <button type="submit" class="btn btn-primary w-100 me-2">Filtrar</button>
@@ -170,13 +198,13 @@
                        title="Gerar PDF" 
                        target="_blank"
                        style="width: 50px;">
-                         <i class="fas fa-file-pdf"></i>
+                        <i class="fas fa-file-pdf"></i>
                     </a>
                     <a href="{% url 'pedido:gerar_excel_pedidos' %}?{{ request.GET.urlencode }}" 
                        class="btn btn-success ms-1" title="Gerar Excel" 
                        target="_blank"
                        style="width: 50px;">
-                         <i class="fas fa-file-excel"></i>
+                        <i class="fas fa-file-excel"></i>
                     </a>
                 </div>
             </div>
@@ -259,45 +287,48 @@
     </div>
 </div>
 
+
 {% for cliente in page_obj %}
 <div class="modal fade" id="modalClientePedido{{ cliente.pk }}" tabindex="-1" aria-labelledby="modalClienteLabel{{ cliente.pk }}" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content"> 
+        <div class="modal-content printable-modal"> 
             <div class="modal-header">
                 <h5 class="modal-title" id="modalClienteLabel{{ cliente.pk }}">Ficha Cadastral: {{ cliente.nome }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             
-            <div class="modal-body printable-modal">
+            <div class="modal-body">
                 
-                <div class="mb-3">
+                <div class="info-block">
                     <small class="text-muted d-block">Nome/Empresa:</small>
                     <h5>{{ cliente.nome|default:"N/A" }}</h5>
                 </div>
+                
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 info-block">
                         <small class="text-muted d-block">CNPJ/CPF:</small>
                         <span class="cnpj-col-pedido">{{ cliente.cnpj|default:"N/A" }}</span>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 info-block">
                         <small class="text-muted d-block">Data de Cadastro:</small>
-                        {{ cliente.data_criacao|date:"d/m/Y H:i" }}
+                        <span>{{ cliente.data_criacao|date:"d/m/Y H:i" }}</span>
                     </div>
                 </div>
                 <hr>
 
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 info-block">
                         <small class="text-muted d-block">Email:</small>
-                        {{ cliente.email|default:"Não informado" }}
+                        <span>{{ cliente.email|default:"Não informado" }}</span>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 info-block">
                         <small class="text-muted d-block">Pessoa de Contato:</small>
-                        {{ cliente.contato|default:"Não informado" }}
+                        <span>{{ cliente.contato|default:"Não informado" }}</span>
                     </div>
                 </div>
+                
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 info-block">
                         <small class="text-muted d-block">Telefone:</small>
                         <span class="telefone-col-pedido">{{ cliente.telefone|default:"Não informado" }}</span>
                     </div>
@@ -305,48 +336,55 @@
                 <hr>
 
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 info-block">
                         <small class="text-muted d-block">Endereço:</small>
-                        {{ cliente.endereco|default:"Não informado" }}
+                        <span>{{ cliente.endereco|default:"Não informado" }}</span>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 info-block">
                         <small class="text-muted d-block">Cidade:</small>
-                        {{ cliente.cidade|default:"Não informada" }}
+                        <span>{{ cliente.cidade|default:"Não informada" }}</span>
                     </div>
                 </div>
+                
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 info-block">
                         <small class="text-muted d-block">CEP:</small>
                         <span class="cep-col-pedido">{{ cliente.cep|default:"Não informado" }}</span>
                     </div>
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 info-block">
                         <small class="text-muted d-block">Estado (UF):</small>
-                        {{ cliente.estado|default:"Não informado" }}
+                        <span>{{ cliente.estado|default:"Não informado" }}</span>
                     </div>
                 </div>
                 <hr>
 
                 <div class="row">
-                    <div class="col-md-6 mb-3">
+                    <div class="col-md-6 info-block">
                         <small class="text-muted d-block">Categoria:</small>
-                        {{ cliente.categoria.nome|default:"N/A" }}
+                        <span>{{ cliente.categoria.nome|default:"N/A" }}</span>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <small class="text-muted d-block">Descrição:</small>
-                        {{ cliente.descricao_pedido|default:"Nenhuma"|linebreaksbr }}
+                    <div class="col-md-6 info-block">
+                        <small class="text-muted d-block">Técnico Responsável:</small>
+                        <span>{{ cliente.tecnico.nome|default:"N/A" }}</span>
                     </div>
                 </div>
+                
                 <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <small class="text-muted d-block">Técnico Responsável:</small>
-                        {{ cliente.tecnico.nome|default:"N/A" }}
+                    <div class="col-md-12 info-block">
+                        <small class="text-muted d-block">Descrição:</small>
+                        <div style="min-height: 40px; padding-top: 2px;">
+                            {{ cliente.descricao_pedido|default:"Nenhuma"|linebreaksbr }}
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 info-block">
                         <small class="text-muted d-block">Valor do Pedido:</small>
                         <strong class="fs-6">R$ {{ cliente.valor_pedido|floatformat:2|default:"0,00" }}</strong>
                     </div>
                 </div>
-
+                
                 <hr class="my-4">
                 <div class="row align-items-end" style="margin-top: 40px;">
                     <div class="col-auto">
@@ -371,10 +409,11 @@
 {% endfor %}
 {% endblock %}
 
+
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ... (Scripts de busca e formatação - todos existentes) ...
+    // ... (Scripts de busca, formatação e impressão) ...
     const buscaInput = document.getElementById('buscaCnpjPedido');
     const tabelaBody = document.getElementById('tabelaClientesPedido');
     const linhasTabela = tabelaBody.getElementsByTagName('tr');
@@ -396,6 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
     function formatarDocumento(celula) {
         let valor = celula.textContent.replace(/\D/g, ''); 
         if (valor.length === 11) {
@@ -407,6 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     document.querySelectorAll('.cnpj-col-pedido').forEach(formatarDocumento);
+
     function formatarTelefone(celula) {
         let valor = celula.textContent.replace(/\D/g, '');
         if (valor.length === 11) {
@@ -418,6 +459,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     document.querySelectorAll('.telefone-col-pedido').forEach(formatarTelefone);
+
     function formatarCEP(celula) {
          let valor = celula.textContent.replace(/\D/g, '');
          if (valor.length === 8) {
@@ -426,24 +468,30 @@ document.addEventListener('DOMContentLoaded', function() {
          }
     }
     document.querySelectorAll('.cep-col-pedido').forEach(formatarCEP);
-    
-    // --- SCRIPT DE IMPRESSÃO ATUALIZADO ---
+
     document.querySelectorAll('.btn-print-modal').forEach(function(button) {
         button.addEventListener('click', function() {
-            // Agora, o 'printable-modal' é o 'modal-body'
-            const modalBodyToPrint = this.closest('.modal-content').querySelector('.printable-modal');
-            
-            // Adiciona/Remove a classe 'printable-modal-active' no 'modal-body'
-            modalBodyToPrint.classList.add('printable-modal-active');
-            
+            const modalContent = this.closest('.modal-content');
+            modalContent.classList.add('printable-modal-active');
             window.addEventListener('afterprint', function() {
-                modalBodyToPrint.classList.remove('printable-modal-active');
+                modalContent.classList.remove('printable-modal-active');
             }, { once: true }); 
-            
             window.print();
         });
     });
-    
+
+    const modals = document.querySelectorAll('.modal.fade');
+    modals.forEach(function(modal) {
+        modal.addEventListener('show.bs.modal', function () {
+             document.querySelectorAll('.printable-modal').forEach(function(pm) {
+                 pm.classList.remove('printable-modal');
+             });
+             this.querySelector('.modal-content').classList.add('printable-modal');
+        });
+        modal.addEventListener('hidden.bs.modal', function () {
+             this.querySelector('.modal-content').classList.remove('printable-modal');
+        });
+    });
 });
 </script>
 {% endblock %}
