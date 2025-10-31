@@ -16,42 +16,87 @@
         background-color: #ffffff; 
         border-bottom-width: 2px;
     }
+    
+    /* --- INÍCIO DO NOVO CSS DE IMPRESSÃO (CORRIGIDO) --- */
     @media print {
-        body * { visibility: hidden; }
-        .printable-modal, .printable-modal * { visibility: visible; }
-        .printable-modal { position: absolute; left: 0; top: 0; width: 100%; border: none; box-shadow: none; }
-        .printable-modal .modal-dialog { max-width: 100% !important; width: 100% !important; margin: 0 !important; }
-        .printable-modal .modal-content { border: none; box-shadow: none; }
-        .printable-modal .modal-header .btn-close,
-        .printable-modal .modal-footer { display: none; }
+        /* Esconde a barra lateral e a navbar superior */
+        #sidebar-wrapper, #page-content-wrapper > .navbar {
+            display: none;
+        }
+        
+        /* Esconde o conteúdo principal (o card da lista) */
+        #page-content-wrapper > .container-fluid > .card {
+            display: none;
+        }
+        
+        /* Esconde o backdrop (fundo cinza) do modal */
+        .modal-backdrop {
+            display: none !important;
+        }
+
+        /* Faz o modal ativo preencher a tela de impressão */
+        .modal {
+            position: relative !important; 
+            display: block !important; /* Força a exibição do modal que está ativo */
+            opacity: 1 !important;
+            width: 100%;
+            height: 100%;
+            overflow: visible !important; /* Remove scrollbars internos */
+        }
+        
+        /* Garante que apenas o modal que está aberto (classe .show) seja impresso */
+        .modal:not(.show) {
+             display: none !important;
+        }
+
+        .modal-dialog {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            transform: none !important; /* Reseta qualquer transformação */
+        }
+        
+        .modal-content {
+            border: none !important;
+            box-shadow: none !important;
+        }
+        
+        /* Esconde os botões de fechar e do rodapé */
+        .modal-header .btn-close,
+        .modal-footer {
+            display: none;
+        }
+        
+        .modal-body {
+            overflow: visible !important;
+        }
+        
+        /* Remove a rolagem da página que a imagem antiga mostrava */
+        html, body {
+            overflow: visible !important;
+            height: auto !important;
+        }
+
+        /* FORÇA O LAYOUT DE COLUNAS DO BOOTSTRAP A FUNCIONAR NA IMPRESSÃO */
+        .modal-body .row {
+            display: flex !important;
+            flex-wrap: wrap !important;
+        }
+        .modal-body .col-md-6 {
+            flex: 0 0 50% !important;
+            max-width: 50% !important;
+        }
+        .modal-body .col-auto {
+            flex: 0 0 auto !important;
+            width: auto !important;
+        }
+         .modal-body .col-7 {
+            flex: 0 0 auto !important; /* Ajuste para a linha de assinatura */
+            width: 58.333333% !important;
+        }
     }
+    /* --- FIM DO NOVO CSS DE IMPRESSÃO --- */
     
-    /* Estilo "clean" para o filtro de data (Layout de image_bb4c7e.png) */
-    .clean-filter-group {
-        /* border: 1px solid #dee2e6; */
-        /* border-radius: .375rem; */
-        overflow: hidden;
-    }
-    .clean-filter-group .form-control {
-        border: none;
-        box-shadow: none !important;
-    }
-    .clean-filter-group .form-check-input {
-        margin-top: 0.1em;
-    }
-    
-    /* Regra separada para o fundo do form-control */
-    .clean-filter-group > .form-control {
-        background-color: #fff;
-    }
-    
-    .clean-filter-group > .input-group-text {
-        border: none;
-        /* border-right: 1px solid #dee2e6; */ 
-        background-color: transparent;
-    }
-    
-    /* Estilo "clean" para os novos totais financeiros */
     .financial-summary-wrapper {
         font-size: 0.9rem;
         color: #333;
@@ -100,13 +145,19 @@
 
             <div class="col-md-5">
                 <label class="form-label d-block">Período de Cadastro</label> 
-                <div class="input-group clean-filter-group">
-                    <div class="input-group-text">
-                        {{ filter_form.filtrar_por_data }}
-                        <label for="{{ filter_form.filtrar_por_data.id_for_label }}" class="ms-2 mb-0">{{ filter_form.filtrar_por_data.label }}</label>
+                <div class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <div class="form-check">
+                            {{ filter_form.filtrar_por_data }}
+                            <label for="{{ filter_form.filtrar_por_data.id_for_label }}" class="form-check-label">{{ filter_form.filtrar_por_data.label }}</label>
+                        </div>
                     </div>
-                    {{ filter_form.data_inicio }}
-                    {{ filter_form.data_fim }}
+                    <div class="col">
+                        {{ filter_form.data_inicio }}
+                    </div>
+                    <div class="col">
+                        {{ filter_form.data_fim }}
+                    </div>
                 </div>
             </div>
 
@@ -211,43 +262,103 @@
 {% for cliente in page_obj %}
 <div class="modal fade" id="modalClientePedido{{ cliente.pk }}" tabindex="-1" aria-labelledby="modalClienteLabel{{ cliente.pk }}" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content printable-modal"> 
+        <div class="modal-content"> 
             <div class="modal-header">
                 <h5 class="modal-title" id="modalClienteLabel{{ cliente.pk }}">Ficha Cadastral: {{ cliente.nome }}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <h6>Detalhes do Pedido</h6>
-                <dl class="row">
-                    <dt class="col-sm-3">Nome/Empresa</dt><dd class="col-sm-9">{{ cliente.nome }}</dd>
-                    <dt class="col-sm-3">CNPJ/CPF</dt><dd class="col-sm-9 cnpj-col-pedido">{{ cliente.cnpj }}</dd>
-                    <dt class="col-sm-3">Data de Cadastro</dt><dd class="col-sm-9">{{ cliente.data_criacao|date:"d/m/Y H:i" }}</dd>
-                    <dt class="col-sm-3">Cadastrado por</dt><dd class="col-sm-9">{{ cliente.usuario_criador.username|default:"N/A" }}</dd>
-                </dl>
+            
+            <div class="modal-body printable-modal">
+                
+                <div class="mb-3">
+                    <small class="text-muted d-block">Nome/Empresa:</small>
+                    <h5>{{ cliente.nome|default:"N/A" }}</h5>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">CNPJ/CPF:</small>
+                        <span class="cnpj-col-pedido">{{ cliente.cnpj|default:"N/A" }}</span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">Data de Cadastro:</small>
+                        {{ cliente.data_criacao|date:"d/m/Y H:i" }}
+                    </div>
+                </div>
                 <hr>
-                <h6>Contato</h6>
-                <dl class="row">
-                    <dt class="col-sm-3">Email</dt><dd class="col-sm-9">{{ cliente.email|default:"Não informado" }}</dd>
-                    <dt class="col-sm-3">Telefone</dt><dd class="col-sm-9 telefone-col-pedido">{{ cliente.telefone|default:"Não informado" }}</dd>
-                    <dt class="col-sm-3">Pessoa de Contato</dt><dd class="col-sm-9">{{ cliente.contato|default:"Não informado" }}</dd>
-                </dl>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">Email:</small>
+                        {{ cliente.email|default:"Não informado" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">Pessoa de Contato:</small>
+                        {{ cliente.contato|default:"Não informado" }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">Telefone:</small>
+                        <span class="telefone-col-pedido">{{ cliente.telefone|default:"Não informado" }}</span>
+                    </div>
+                </div>
                 <hr>
-                <h6>Endereço</h6>
-                <dl class="row">
-                    <dt class="col-sm-3">Endereço</dt><dd class="col-sm-9">{{ cliente.endereco|default:"Não informado" }}</dd>
-                    <dt class="col-sm-3">CEP</dt><dd class="col-sm-9 cep-col-pedido">{{ cliente.cep|default:"Não informado" }}</dd>
-                    <dt class="col-sm-3">Cidade</dt><dd class="col-sm-9">{{ cliente.cidade|default:"Não informada" }}</dd>
-                    <dt class="col-sm-3">Estado (UF)</dt><dd class="col-sm-9">{{ cliente.estado|default:"Não informado" }}</D>
-                </dl>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">Endereço:</small>
+                        {{ cliente.endereco|default:"Não informado" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">Cidade:</small>
+                        {{ cliente.cidade|default:"Não informada" }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">CEP:</small>
+                        <span class="cep-col-pedido">{{ cliente.cep|default:"Não informado" }}</span>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">Estado (UF):</small>
+                        {{ cliente.estado|default:"Não informado" }}
+                    </div>
+                </div>
                 <hr>
-                <h6>Detalhes de Classificação e Valor</h6>
-                <dl class="row">
-                    <dt class="col-sm-3">Categoria</dt><dd class="col-sm-9">{{ cliente.categoria.nome|default:"N/A" }}</dd>
-                    <dt class="col-sm-3">Técnico Responsável</dt><dd class="col-sm-9">{{ cliente.tecnico.nome|default:"N/A" }}</dd>
-                    <dt class="col-sm-3">Descrição</dt><dd class="col-sm-9">{{ cliente.descricao_pedido|default:"Nenhuma"|linebreaksbr }}</dd>
-                    <dt class="col-sm-3">Valor do Pedido</dt><dd class="col-sm-9 fw-bold">R$ {{ cliente.valor_pedido|floatformat:2|default:"0,00" }}</dd>
-                </dl>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">Categoria:</small>
+                        {{ cliente.categoria.nome|default:"N/A" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">Descrição:</small>
+                        {{ cliente.descricao_pedido|default:"Nenhuma"|linebreaksbr }}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">Técnico Responsável:</small>
+                        {{ cliente.tecnico.nome|default:"N/A" }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">Valor do Pedido:</small>
+                        <strong class="fs-6">R$ {{ cliente.valor_pedido|floatformat:2|default:"0,00" }}</strong>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+                <div class="row align-items-end" style="margin-top: 40px;">
+                    <div class="col-auto">
+                        <p class="mb-0"><strong>Assinatura:</strong></p>
+                    </div>
+                    <div class="col-7">
+                        <p style="border-bottom: 1px solid #333; height: 1rem;"></p>
+                    </div>
+                </div>
+                
             </div>
+            
             <div class="modal-footer">
                 <button type="button" class="btn btn-primary btn-print-modal">
                     <i class="fas fa-print me-1"></i> Imprimir
@@ -263,7 +374,7 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ... (Scripts de busca, formatação e impressão) ...
+    // ... (Scripts de busca e formatação - todos existentes) ...
     const buscaInput = document.getElementById('buscaCnpjPedido');
     const tabelaBody = document.getElementById('tabelaClientesPedido');
     const linhasTabela = tabelaBody.getElementsByTagName('tr');
@@ -310,33 +421,29 @@ document.addEventListener('DOMContentLoaded', function() {
     function formatarCEP(celula) {
          let valor = celula.textContent.replace(/\D/g, '');
          if (valor.length === 8) {
-               valor = valor.replace(/(\d{5})(\d{3})/, '$1-$2');
-               celula.textContent = valor;
+             valor = valor.replace(/(\d{5})(\d{3})/, '$1-$2');
+             celula.textContent = valor;
          }
     }
     document.querySelectorAll('.cep-col-pedido').forEach(formatarCEP);
+    
+    // --- SCRIPT DE IMPRESSÃO ATUALIZADO ---
     document.querySelectorAll('.btn-print-modal').forEach(function(button) {
         button.addEventListener('click', function() {
-            const modalContent = this.closest('.modal-content');
-            modalContent.classList.add('printable-modal-active');
+            // Agora, o 'printable-modal' é o 'modal-body'
+            const modalBodyToPrint = this.closest('.modal-content').querySelector('.printable-modal');
+            
+            // Adiciona/Remove a classe 'printable-modal-active' no 'modal-body'
+            modalBodyToPrint.classList.add('printable-modal-active');
+            
             window.addEventListener('afterprint', function() {
-                modalContent.classList.remove('printable-modal-active');
+                modalBodyToPrint.classList.remove('printable-modal-active');
             }, { once: true }); 
+            
             window.print();
         });
     });
-    const modals = document.querySelectorAll('.modal.fade');
-    modals.forEach(function(modal) {
-        modal.addEventListener('show.bs.modal', function () {
-             document.querySelectorAll('.printable-modal').forEach(function(pm) {
-                  pm.classList.remove('printable-modal');
-             });
-             this.querySelector('.modal-content').classList.add('printable-modal');
-        });
-        modal.addEventListener('hidden.bs.modal', function () {
-             this.querySelector('.modal-content').classList.remove('printable-modal');
-        });
-    });
+    
 });
 </script>
 {% endblock %}
