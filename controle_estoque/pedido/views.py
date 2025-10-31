@@ -228,19 +228,44 @@ def excluir_cliente_pedido(request, pk):
     """
     Exclui um Cliente (do app Pedido).
     """
-    cliente = get_object_or_404(ClientePedido, pk=pk)
     
-    if not request.user.is_superuser and cliente.usuario_criador != request.user:
-        messages.error(request, 'Você não tem permissão para excluir este registro.')
-        return redirect('pedido:listar_clientes_pedido')
-
+    # --- CORREÇÃO APLICADA AQUI ---
+    # Nós só buscamos o objeto no método GET (para mostrar a confirmação)
+    # No POST, buscamos o objeto DENTRO do 'try' para evitar erros de clique duplo.
+    
     if request.method == 'POST':
         try:
+            # 1. Tenta encontrar o objeto
+            cliente = ClientePedido.objects.get(pk=pk)
+            
+            # 2. Verifica a permissão (só se o objeto for encontrado)
+            if not request.user.is_superuser and cliente.usuario_criador != request.user:
+                messages.error(request, 'Você não tem permissão para excluir este registro.')
+                return redirect('pedido:listar_clientes_pedido')
+            
+            # 3. Tenta deletar
             nome_cliente = cliente.nome
             cliente.delete()
             messages.success(request, f'Cliente "{nome_cliente}" excluído com sucesso!')
+
+        except ClientePedido.DoesNotExist:
+            # Se o objeto não existe (ex: double-click), avisa o usuário.
+            messages.warning(request, 'Este pedido já foi excluído.')
+        
         except ProtectedError:
-            messages.error(request, f'Não é possível excluir "{cliente.nome}", pois ele está em uso.')
+            # Se estiver em uso
+            messages.error(request, 'Não é possível excluir este pedido, pois ele está em uso.')
+        
+        # Redireciona em qualquer caso do POST
+        return redirect('pedido:listar_clientes_pedido')
+
+    # --- LÓGICA DO GET (permanece a mesma) ---
+    # Busca o objeto para mostrar na página de confirmação
+    cliente = get_object_or_404(ClientePedido, pk=pk)
+    
+    # Checagem de permissão também para o GET
+    if not request.user.is_superuser and cliente.usuario_criador != request.user:
+        messages.error(request, 'Você não tem permissão para ver esta página de exclusão.')
         return redirect('pedido:listar_clientes_pedido')
 
     context = {
